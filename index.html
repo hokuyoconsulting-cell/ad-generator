@@ -677,8 +677,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Anthropic API key (Phase1: クライアント直接呼び出し)
-const ANTHROPIC_KEY = "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";
 
 // ── State ──
 let currentUser = null;
@@ -1084,26 +1082,14 @@ async function saveSession(outputs) {
 
 // ── Claude API call ──
 async function callClaude(prompt, maxTokens = 1000) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetch("https://hook.eu1.make.com/579uc8xdc49370dxqlrbnk2nfx9ps8f8", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_KEY,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-allow-browser": "true"
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: maxTokens,
-      messages: [{ role: "user", content: prompt }]
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt })
   });
-  if(!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error?.message || `HTTP ${res.status}`);
-  }
-  const data = await res.json();
-  return data.content[0].text;
+  if(!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  return text;
 }
 </script>
 </body>
