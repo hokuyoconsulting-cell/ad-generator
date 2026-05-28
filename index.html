@@ -9,17 +9,17 @@
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
 
   :root {
-    --bg: #f5f4f0;
+    --bg: #7fffd4;
     --surface: #ffffff;
-    --surface2: #eeece8;
-    --border: #d8d5ce;
-    --accent: #8a6a2a;
-    --accent2: #2a5a8a;
-    --text: #1a1814;
-    --text-dim: #555048;
-    --text-faint: #999188;
-    --danger: #c0392b;
-    --success: #27ae60;
+    --surface2: #e0fff5;
+    --border: #00cc66;
+    --accent: #00ff7f;
+    --accent2: #00cc66;
+    --text: #000000;
+    --text-dim: #1a1a1a;
+    --text-faint: #444444;
+    --danger: #cc0000;
+    --success: #006600;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1088,8 +1088,10 @@ async function callClaude(prompt, maxTokens = 1000) {
     body: JSON.stringify({ prompt })
   });
   if(!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
-  return text;
+  const data = await res.json();
+  if(data.content && data.content[0] && data.content[0].text) return data.content[0].text;
+  if(typeof data === "string") return data;
+  throw new Error("レスポンス形式不明: " + JSON.stringify(data).slice(0, 100));
 }
 </script>
 </body>
