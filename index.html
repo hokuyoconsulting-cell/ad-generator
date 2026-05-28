@@ -875,8 +875,13 @@ function showGenerationSection() {
 
   // サマリー表示
   const summaryEl = document.getElementById("summary-block");
+  const KEY_LABELS = {
+    product: "商品・サービス",
+    target_type: "ターゲット層",
+    pain: "悩み・課題"
+  };
   const lines = Object.entries(wizardAnswers)
-    .map(([k,v]) => `<strong>${k}</strong>：${v.join("、")}`);
+    .map(([k,v]) => `<strong>${KEY_LABELS[k] || k}</strong>：${v.join("、")}`);
   summaryEl.innerHTML = lines.join("<br>");
 
   generateCandidates();
