@@ -1138,25 +1138,16 @@ async function saveSession(outputs) {
 
 // ── Claude API call ──
 async function callClaude(prompt, maxTokens = 1000) {
-  const res = await fetch("https://hook.eu1.make.com/579uc8xdc49370dxqlrbnk2nfx9ps8f8", {
+  const res = await fetch("https://ad-generator-api.hokuyo-consulting.workers.dev", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt })
   });
   if(!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
-  // Makeが"Accepted"を返す場合はポーリングで待つ
-  if(text.trim() === "Accepted") {
-    throw new Error("Make側の設定エラー：Webhook responseが正しく返っていません");
-  }
-  try {
-    const data = JSON.parse(text);
-    if(data.content && data.content[0] && data.content[0].text) return data.content[0].text;
-    if(typeof data === "string") return data;
-    throw new Error("レスポンス形式不明: " + JSON.stringify(data).slice(0, 100));
-  } catch(e) {
-    throw new Error("JSONパースエラー: " + text.slice(0, 100));
-  }
+  const data = await res.json();
+  if(data.text) return data.text;
+  if(data.error) throw new Error(data.error);
+  throw new Error("レスポンス形式不明: " + JSON.stringify(data).slice(0, 100));
 }
 </script>
 </body>
