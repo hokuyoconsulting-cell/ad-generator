@@ -9,7 +9,7 @@
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
 
   :root {
-    --bg: #7fffd4;
+    --bg: #98fb98;
     --surface: #ffffff;
     --surface2: #e0fff5;
     --border: #00cc66;
@@ -215,9 +215,9 @@
   }
   .option-btn:hover { border-color: var(--accent2); color: var(--text); }
   .option-btn.selected {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(232,213,163,0.06);
+    border-color: #cccc00;
+    color: #000000;
+    background: #ffff00;
   }
 
   .freeword-row {
@@ -285,7 +285,7 @@
   .btn-next {
     background: var(--accent);
     border: none;
-    color: #0f0f0f;
+    color: #000000;
     padding: 12px 28px;
     border-radius: 6px;
     cursor: pointer;
@@ -296,8 +296,25 @@
     transition: all 0.15s;
     letter-spacing: 0.04em;
   }
-  .btn-next:hover { background: #f0e0b0; transform: translateY(-1px); }
+  .btn-next:hover { background: #00cc66; transform: translateY(-1px); }
   .btn-next:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.btn-back {
+    background: #ffffff;
+    border: 2px solid #00ff7f;
+    color: #000000;
+    padding: 12px 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 700;
+    margin-top: 16px;
+    margin-right: 8px;
+    transition: all 0.15s;
+    letter-spacing: 0.04em;
+  }
+  .btn-back:hover { background: #e0fff5; transform: translateY(-1px); }
 
   /* ── GENERATION SECTION ── */
   #generation-section { display: none; }
@@ -448,9 +465,9 @@
   }
   .tune-btn:hover { border-color: var(--accent2); color: var(--text); }
   .tune-btn.active {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(232,213,163,0.06);
+    border-color: #cccc00;
+    color: #000000;
+    background: #ffff00;
   }
 
   /* ── OUTPUT ── */
@@ -736,6 +753,18 @@ onAuthStateChanged(auth, user => {
   }
 });
 
+window.prevStep = () => {
+  if(wizardStep <= 0) return;
+  wizardStep--;
+  const keys = Object.keys(wizardAnswers);
+  const prevKey = keys[keys.length - 1];
+  delete wizardAnswers[prevKey];
+  if(wizardStep < INITIAL_QUESTIONS.length) {
+    renderQuestion(INITIAL_QUESTIONS[wizardStep]);
+  }
+};
+
+
 // ── Wizard ──
 function initWizard() {
   wizardAnswers = {};
@@ -757,6 +786,7 @@ function renderQuestion(q) {
       <button class="btn-add-word" onclick="window.addWizardWord()">追加</button>
     </div>
     <div class="freeword-tags" id="wizard-freeword-tags"></div>
+    <button class="btn-back" id="back-btn" onclick="window.prevStep()">← 戻る</button>
     <button class="btn-next" id="next-btn" onclick="window.nextStep('${q.id}')" disabled>次へ →</button>
   `;
   container.appendChild(block);
