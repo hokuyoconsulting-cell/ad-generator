@@ -297,7 +297,14 @@
     letter-spacing: 0.04em;
   }
   .btn-next:hover { background: #00cc66; transform: translateY(-1px); }
-  .btn-next:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-next:disabled {
+    background: #ffffff;
+    border: 2px solid #00ff7f;
+    color: #000000;
+    opacity: 1;
+    cursor: not-allowed;
+    transform: none;
+  }
 
 .btn-back {
     background: #ffffff;
@@ -616,7 +623,7 @@
 
       <div class="candidates-header">
         <div class="section-title" style="margin-bottom:0">広告候補</div>
-        <button class="btn-refresh" id="refresh-btn" onclick="generateCandidates()">
+        <button class="btn-refresh" id="refresh-btn" onclick="generateCandidates()" style="display:none">
           <span>↺</span> 更新する
         </button>
       </div>
@@ -707,6 +714,11 @@ let currentCandidates = [];
 // ── Questions (初期3問・その後動的生成) ──
 const INITIAL_QUESTIONS = [
   {
+    id: "media",
+    text: "どの媒体に広告を出したいですか？（複数選択可）",
+    options: ["X（旧Twitter）","Instagram","note","Facebook","LINE","求人媒体（マイナビ等）","チラシ・印刷物"]
+  },
+  {
     id: "product",
     text: "何を売っていますか？（商品・サービス名と一言説明）",
     options: ["物販（商品を売る）","サービス（コンサル・制作等）","情報コンテンツ（講座・note等）","飲食・店舗","採用（人を募集）","イベント告知"]
@@ -783,13 +795,23 @@ function renderQuestion(q) {
     <div class="options-grid" id="options-grid"></div>
     <div class="freeword-row">
       <input type="text" class="freeword-input" id="wizard-freeword" placeholder="その他・自由入力">
-      <button class="btn-add-word" onclick="window.addWizardWord()">追加</button>
+      <button class="btn-add-word" id="wizard-add-btn" onclick="window.addWizardWord()">追加</button>
     </div>
     <div class="freeword-tags" id="wizard-freeword-tags"></div>
     <button class="btn-back" id="back-btn" onclick="window.prevStep()">← 戻る</button>
-    <button class="btn-next" id="next-btn" onclick="window.nextStep('${q.id}')" disabled>次へ →</button>
+    <button class="btn-next" id="next-btn" onclick="window.nextStep('${q.id}')" disabled>次へ</button>
   `;
   container.appendChild(block);
+document.getElementById("wizard-freeword").addEventListener("input", function() {
+    const addBtn = document.getElementById("wizard-add-btn");
+    if(this.value.trim()) {
+      addBtn.style.background = "#ffff00";
+      addBtn.style.border = "2px solid #cccc00";
+    } else {
+      addBtn.style.background = "";
+      addBtn.style.border = "";
+    }
+  });
 
   const grid = document.getElementById("options-grid");
   q.options.forEach(opt => {
@@ -814,6 +836,7 @@ function updateNextBtn() {
 
 window.addWizardWord = () => {
   const input = document.getElementById("wizard-freeword");
+  const addBtn = document.getElementById("wizard-add-btn");
   const word = input.value.trim();
   if(!word) return;
   const tags = document.getElementById("wizard-freeword-tags");
@@ -826,6 +849,7 @@ window.addWizardWord = () => {
   updateNextBtn();
   // Firestoreにフリーワードを蓄積
   saveFreeword(word, "wizard");
+  if(addBtn) { addBtn.style.background="#ffffff"; addBtn.style.border="1px solid var(--border)"; }
 };
 
 async function saveFreeword(word, context) {
@@ -904,10 +928,11 @@ function showGenerationSection() {
   // サマリー表示
   const summaryEl = document.getElementById("summary-block");
   const KEY_LABELS = {
-    product: "商品・サービス",
-    target_type: "ターゲット層",
-    pain: "悩み・課題"
-  };
+      media: "広告媒体",
+      product: "商品・サービス",
+      target_type: "ターゲット層",
+      pain: "悩み・課題"
+    };
   const lines = Object.entries(wizardAnswers)
     .map(([k,v]) => `<strong>${KEY_LABELS[k] || k}</strong>：${v.join("、")}`);
   summaryEl.innerHTML = lines.join("<br>");
@@ -980,6 +1005,7 @@ ${checkedText}
 };
 
 function renderCandidates(candidates) {
+  document.getElementById("refresh-btn").style.display = "flex";
   const container = document.getElementById("candidates-container");
   container.innerHTML = "";
 
