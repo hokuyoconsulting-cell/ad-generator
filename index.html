@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>広告生成システム</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #2e2e2e;
+    --accent: #e8d5a3;
+    --accent2: #a3c4e8;
+    --text: #e8e8e8;
+    --text-dim: #888;
+    --text-faint: #555;
+    --danger: #e87a7a;
+    --success: #7ae8a3;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    line-height: 1.7;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+  }
+
+  #user-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  #user-name { color: var(--text); }
+
+  .btn-small {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .btn-small:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    text-align: center;
+    gap: 32px;
+  }
+
+  .login-title {
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+
+  .login-sub {
+    font-size: 14px;
+    color: var(--text-dim);
+    max-width: 320px;
+    line-height: 1.8;
+  }
+
+  .btn-google {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 14px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    font-weight: 400;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .btn-google:hover {
+    border-color: var(--accent);
+    background: var(--surface2);
+    transform: translateY(-1px);
+  }
+  .btn-google svg { flex-shrink: 0; }
+
+  /* ── APP SCREEN ── */
+  #app-screen { display: none; }
+
+  /* ── STEP INDICATOR ── */
+  .step-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 40px;
+    align-items: center;
+  }
+
+  .step-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all 0.3s;
+  }
+  .step-dot.active { background: var(--accent); transform: scale(1.3); }
+  .step-dot.done { background: var(--success); }
+
+  .step-label {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: 'DM Mono', monospace;
+    margin-left: 4px;
+  }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-faint);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  /* ── WIZARD ── */
+  #wizard-section { margin-bottom: 48px; }
+
+  .question-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 16px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .question-text {
+    font-size: 15px;
+    font-weight: 400;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+
+  .options-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .option-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    text-align: left;
+    transition: all 0.15s;
+    line-height: 1.5;
+  }
+  .option-btn:hover { border-color: var(--accent2); color: var(--text); }
+  .option-btn.selected {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232,213,163,0.06);
+  }
+
+  .freeword-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .freeword-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .freeword-input::placeholder { color: var(--text-faint); }
+  .freeword-input:focus { border-color: var(--accent2); }
+
+  .btn-add-word {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .btn-add-word:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .freeword-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .freeword-tag {
+    background: rgba(163,196,232,0.1);
+    border: 1px solid rgba(163,196,232,0.3);
+    color: var(--accent2);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tag-remove {
+    cursor: pointer;
+    color: var(--text-faint);
+    font-size: 14px;
+    line-height: 1;
+  }
+  .tag-remove:hover { color: var(--danger); }
+
+  .btn-next {
+    background: var(--accent);
+    border: none;
+    color: #0f0f0f;
+    padding: 12px 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 700;
+    margin-top: 16px;
+    transition: all 0.15s;
+    letter-spacing: 0.04em;
+  }
+  .btn-next:hover { background: #f0e0b0; transform: translateY(-1px); }
+  .btn-next:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── GENERATION SECTION ── */
+  #generation-section { display: none; }
+
+  .summary-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.9;
+  }
+
+  .summary-block strong { color: var(--text); font-weight: 500; }
+
+  /* ── CANDIDATES ── */
+  .candidates-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .btn-refresh {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-refresh:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .candidate-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    animation: fadeIn 0.3s ease;
+  }
+  .candidate-card:hover { border-color: var(--accent2); }
+  .candidate-card.checked {
+    border-color: var(--accent);
+    background: rgba(232,213,163,0.04);
+  }
+
+  .card-check {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+  .candidate-card.checked .card-check {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0f0f0f;
+  }
+
+  .tweet-label {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-faint);
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+
+  .tweet-1 {
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 12px;
+    line-height: 1.7;
+    padding-right: 28px;
+  }
+
+  .tweet-2 {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── REGEN FREEWORD ── */
+  .regen-freeword-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+
+  /* ── TUNE CONTROLS ── */
+  .tune-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-top: 24px;
+  }
+
+  .tune-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .tune-row:last-child { margin-bottom: 0; }
+
+  .tune-label {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-faint);
+    width: 56px;
+    flex-shrink: 0;
+  }
+
+  .tune-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .tune-btn:hover { border-color: var(--accent2); color: var(--text); }
+  .tune-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232,213,163,0.06);
+  }
+
+  /* ── OUTPUT ── */
+  #output-section {
+    display: none;
+    margin-top: 48px;
+  }
+
+  .output-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 16px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .output-platform {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent2);
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+
+  .output-text {
+    font-size: 14px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    color: var(--text);
+  }
+
+  .btn-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 7px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    margin-top: 14px;
+    transition: all 0.15s;
+  }
+  .btn-copy:hover { border-color: var(--success); color: var(--success); }
+  .btn-copy.copied { border-color: var(--success); color: var(--success); }
+
+  /* ── LOADING ── */
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-dim);
+    font-size: 13px;
+    padding: 24px 0;
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── ERROR ── */
+  .error-msg {
+    color: var(--danger);
+    font-size: 13px;
+    padding: 12px 16px;
+    background: rgba(232,122,122,0.08);
+    border: 1px solid rgba(232,122,122,0.2);
+    border-radius: 6px;
+    margin-top: 12px;
+  }
+
+  /* ── SAVE STATUS ── */
+  .save-status {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: 'DM Mono', monospace;
+    margin-top: 8px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 480px) {
+    .options-grid { grid-template-columns: 1fr; }
+    .tune-row { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">AD-GENERATOR</div>
+  <div id="user-area">
+    <span id="user-name"></span>
+    <button class="btn-small" id="logout-btn" style="display:none" onclick="handleLogout()">ログアウト</button>
+  </div>
+</header>
+
+<main>
+  <!-- LOGIN -->
+  <div id="login-screen">
+    <div>
+      <div class="login-title">広告生成システム</div>
+    </div>
+    <div class="login-sub">Googleアカウントでログインしてください。<br>生成した広告データはアカウントに紐づいて保存されます。</div>
+    <button class="btn-google" onclick="handleLogin()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 6.294C4.672 4.167 6.656 3.58 9 3.58z"/></svg>
+      Googleでログイン
+    </button>
+  </div>
+
+  <!-- APP -->
+  <div id="app-screen">
+
+    <!-- STEP BAR -->
+    <div class="step-bar">
+      <div class="step-dot active" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div>
+      <div class="step-dot" id="dot-3"></div>
+      <span class="step-label" id="step-label">ステップ 1 / 3　情報入力</span>
+    </div>
+
+    <!-- WIZARD -->
+    <div id="wizard-section">
+      <div class="section-title">商品情報の入力</div>
+      <div id="wizard-container"></div>
+      <div id="wizard-loading" style="display:none" class="loading">
+        <div class="spinner"></div>次の質問を生成中...
+      </div>
+    </div>
+
+    <!-- GENERATION -->
+    <div id="generation-section">
+      <div class="section-title">入力内容の確認</div>
+      <div class="summary-block" id="summary-block"></div>
+
+      <div class="candidates-header">
+        <div class="section-title" style="margin-bottom:0">広告候補</div>
+        <button class="btn-refresh" id="refresh-btn" onclick="generateCandidates()">
+          <span>↺</span> 更新する
+        </button>
+      </div>
+
+      <div id="candidates-container"></div>
+
+      <!-- 再生成フリーワード -->
+      <div class="regen-freeword-row">
+        <input type="text" class="freeword-input" id="regen-freeword" placeholder="キーワードを追加して再生成（任意）">
+        <button class="btn-add-word" onclick="addRegenWord()">追加</button>
+      </div>
+      <div class="freeword-tags" id="regen-tags"></div>
+
+      <!-- チューニング -->
+      <div class="tune-section">
+        <div class="section-title" style="margin-bottom:16px">調整</div>
+        <div class="tune-row">
+          <span class="tune-label">長さ</span>
+          <button class="tune-btn" data-group="length" data-val="short" onclick="setTune(this)">短く</button>
+          <button class="tune-btn active" data-group="length" data-val="medium" onclick="setTune(this)">今のまま</button>
+          <button class="tune-btn" data-group="length" data-val="long" onclick="setTune(this)">長く</button>
+        </div>
+        <div class="tune-row">
+          <span class="tune-label">トーン</span>
+          <button class="tune-btn" data-group="tone" data-val="soft" onclick="setTune(this)">やわらかく</button>
+          <button class="tune-btn active" data-group="tone" data-val="medium" onclick="setTune(this)">今のまま</button>
+          <button class="tune-btn" data-group="tone" data-val="strong" onclick="setTune(this)">強く</button>
+        </div>
+        <div class="tune-row">
+          <span class="tune-label">明るさ</span>
+          <button class="tune-btn" data-group="mood" data-val="dark" onclick="setTune(this)">シリアス</button>
+          <button class="tune-btn active" data-group="mood" data-val="medium" onclick="setTune(this)">今のまま</button>
+          <button class="tune-btn" data-group="mood" data-val="bright" onclick="setTune(this)">明るく</button>
+        </div>
+        <div class="tune-row">
+          <span class="tune-label">キャラ</span>
+          <button class="tune-btn" data-group="char" data-val="keep" onclick="setTune(this)">このキャラ好き</button>
+          <button class="tune-btn active" data-group="char" data-val="change" onclick="setTune(this)">違うキャラで</button>
+        </div>
+      </div>
+
+      <div id="gen-loading" style="display:none" class="loading" style="margin-top:16px">
+        <div class="spinner"></div>広告を生成中...
+      </div>
+      <div id="gen-error"></div>
+    </div>
+
+    <!-- OUTPUT -->
+    <div id="output-section">
+      <div class="section-title">出力</div>
+      <div id="output-container"></div>
+    </div>
+
+  </div><!-- /app-screen -->
+</main>
+
+<!-- Firebase + App Script -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ── Firebase init ──
+const firebaseConfig = {
+  apiKey: "AIzaSyAdCx4Wv_F8smkmAMGNiYfA6nUU1728EPQ",
+  authDomain: "ad-generator-14e17.firebaseapp.com",
+  projectId: "ad-generator-14e17",
+  storageBucket: "ad-generator-14e17.firebasestorage.app",
+  messagingSenderId: "802331537047",
+  appId: "1:802331537047:web:dc49b8d111b3ded8d343d2"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Anthropic API key (Phase1: クライアント直接呼び出し)
+const ANTHROPIC_KEY = "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";
+
+// ── State ──
+let currentUser = null;
+let wizardAnswers = {};
+let wizardStep = 0;
+let checkedCandidates = [];
+let regenWords = [];
+let tuneState = { length:"medium", tone:"medium", mood:"medium", char:"change" };
+let currentCandidates = [];
+
+// ── Questions (初期3問・その後動的生成) ──
+const INITIAL_QUESTIONS = [
+  {
+    id: "product",
+    text: "何を売っていますか？（商品・サービス名と一言説明）",
+    options: ["物販（商品を売る）","サービス（コンサル・制作等）","情報コンテンツ（講座・note等）","飲食・店舗","採用（人を募集）","イベント告知"]
+  },
+  {
+    id: "target_type",
+    text: "主にどんな人に向けて売っていますか？",
+    options: ["個人（20代）","個人（30〜40代）","個人（50代以上）","中小企業の担当者","経営者・個人事業主","学生・就活生"]
+  },
+  {
+    id: "pain",
+    text: "お客さんが一番困っていること・悩んでいることは何ですか？",
+    options: ["時間がない","お金・コストの問題","やり方がわからない","不安・自信がない","誰かに頼みたい","現状を変えたい"]
+  }
+];
+
+// ── Auth ──
+window.handleLogin = async () => {
+  const provider = new GoogleAuthProvider();
+  try {
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    console.error(e);
+  }
+};
+
+window.handleLogout = async () => {
+  await signOut(auth);
+};
+
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  if(user) {
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("app-screen").style.display = "block";
+    document.getElementById("user-name").textContent = user.displayName || user.email;
+    document.getElementById("logout-btn").style.display = "inline-block";
+    initWizard();
+  } else {
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("app-screen").style.display = "none";
+    document.getElementById("user-name").textContent = "";
+    document.getElementById("logout-btn").style.display = "none";
+  }
+});
+
+// ── Wizard ──
+function initWizard() {
+  wizardAnswers = {};
+  wizardStep = 0;
+  renderQuestion(INITIAL_QUESTIONS[0]);
+}
+
+function renderQuestion(q) {
+  const container = document.getElementById("wizard-container");
+  container.innerHTML = "";
+
+  const block = document.createElement("div");
+  block.className = "question-block";
+  block.innerHTML = `
+    <div class="question-text">${q.text}</div>
+    <div class="options-grid" id="options-grid"></div>
+    <div class="freeword-row">
+      <input type="text" class="freeword-input" id="wizard-freeword" placeholder="その他・自由入力">
+      <button class="btn-add-word" onclick="window.addWizardWord()">追加</button>
+    </div>
+    <div class="freeword-tags" id="wizard-freeword-tags"></div>
+    <button class="btn-next" id="next-btn" onclick="window.nextStep('${q.id}')" disabled>次へ →</button>
+  `;
+  container.appendChild(block);
+
+  const grid = document.getElementById("options-grid");
+  q.options.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.className = "option-btn";
+    btn.textContent = opt;
+    btn.onclick = () => {
+      btn.classList.toggle("selected");
+      updateNextBtn();
+    };
+    grid.appendChild(btn);
+  });
+}
+
+function updateNextBtn() {
+  const selected = document.querySelectorAll(".option-btn.selected");
+  const fw = document.getElementById("wizard-freeword-tags");
+  const hasTags = fw && fw.children.length > 0;
+  const btn = document.getElementById("next-btn");
+  if(btn) btn.disabled = selected.length === 0 && !hasTags;
+}
+
+window.addWizardWord = () => {
+  const input = document.getElementById("wizard-freeword");
+  const word = input.value.trim();
+  if(!word) return;
+  const tags = document.getElementById("wizard-freeword-tags");
+  const tag = document.createElement("div");
+  tag.className = "freeword-tag";
+  tag.dataset.word = word;
+  tag.innerHTML = `${word} <span class="tag-remove" onclick="this.parentElement.remove(); updateNextBtn()">×</span>`;
+  tags.appendChild(tag);
+  input.value = "";
+  updateNextBtn();
+  // Firestoreにフリーワードを蓄積
+  saveFreeword(word, "wizard");
+};
+
+async function saveFreeword(word, context) {
+  try {
+    await addDoc(collection(db, "freewords"), {
+      word,
+      context,
+      uid: currentUser?.uid || "anonymous",
+      createdAt: serverTimestamp()
+    });
+  } catch(e) { console.log("freeword save:", e); }
+}
+
+window.nextStep = async (questionId) => {
+  const selected = [...document.querySelectorAll(".option-btn.selected")].map(b => b.textContent);
+  const fwTags = [...document.querySelectorAll("#wizard-freeword-tags .freeword-tag")].map(t => t.dataset.word);
+  wizardAnswers[questionId] = [...selected, ...fwTags];
+
+  wizardStep++;
+  if(wizardStep < INITIAL_QUESTIONS.length) {
+    renderQuestion(INITIAL_QUESTIONS[wizardStep]);
+  } else if(wizardStep < 5) {
+    // 動的に追加質問を生成
+    await generateNextQuestion();
+  } else {
+    showGenerationSection();
+  }
+};
+
+async function generateNextQuestion() {
+  document.getElementById("wizard-container").innerHTML = "";
+  document.getElementById("wizard-loading").style.display = "flex";
+
+  const answersText = Object.entries(wizardAnswers)
+    .map(([k,v]) => `${k}: ${v.join("、")}`)
+    .join("\n");
+
+  const prompt = `あなたは広告コピーライターです。
+ユーザーの商品・サービスについての広告を生成するために、追加情報を集めます。
+
+これまでの回答：
+${answersText}
+
+次に聞くべき質問を1つ生成してください。
+選択肢は10個まで（実際に役立つものを厳選）。
+
+以下のJSONのみで返してください（他の文章は不要）：
+{
+  "id": "英語のキーID",
+  "text": "質問文（日本語）",
+  "options": ["選択肢1", "選択肢2", ...]
+}`;
+
+  try {
+    const res = await callClaude(prompt, 600);
+    const clean = res.replace(/```json|```/g, "").trim();
+    const q = JSON.parse(clean);
+    document.getElementById("wizard-loading").style.display = "none";
+    renderQuestion(q);
+  } catch(e) {
+    document.getElementById("wizard-loading").style.display = "none";
+    showGenerationSection();
+  }
+}
+
+function showGenerationSection() {
+  document.getElementById("wizard-section").style.display = "none";
+  document.getElementById("generation-section").style.display = "block";
+
+  // ステップ更新
+  document.getElementById("dot-1").classList.remove("active");
+  document.getElementById("dot-1").classList.add("done");
+  document.getElementById("dot-2").classList.add("active");
+  document.getElementById("step-label").textContent = "ステップ 2 / 3　広告生成";
+
+  // サマリー表示
+  const summaryEl = document.getElementById("summary-block");
+  const lines = Object.entries(wizardAnswers)
+    .map(([k,v]) => `<strong>${k}</strong>：${v.join("、")}`);
+  summaryEl.innerHTML = lines.join("<br>");
+
+  generateCandidates();
+}
+
+// ── Candidate generation ──
+window.generateCandidates = async () => {
+  const container = document.getElementById("candidates-container");
+  const loadEl = document.getElementById("gen-loading");
+  const errEl = document.getElementById("gen-error");
+  const refreshBtn = document.getElementById("refresh-btn");
+
+  container.innerHTML = "";
+  errEl.innerHTML = "";
+  loadEl.style.display = "flex";
+  refreshBtn.disabled = true;
+
+  const answersText = Object.entries(wizardAnswers)
+    .map(([k,v]) => `${k}: ${v.join("、")}`)
+    .join("\n");
+
+  const regenText = regenWords.length > 0
+    ? `\n追加キーワード：${regenWords.join("、")}` : "";
+
+  const tuneText = `
+長さ：${tuneState.length === "short" ? "短め" : tuneState.length === "long" ? "長め" : "標準"}
+トーン：${tuneState.tone === "soft" ? "やわらかく" : tuneState.tone === "strong" ? "強め・力強く" : "標準"}
+明るさ：${tuneState.mood === "dark" ? "シリアス・真剣" : tuneState.mood === "bright" ? "明るく・ポップ" : "標準"}
+キャラ：${tuneState.char === "keep" ? "前回のキャラクターを引き継ぐ" : "新しいキャラクターで"}`;
+
+  const checkedText = checkedCandidates.length > 0
+    ? `\n気に入っている候補の要素（引き継ぐこと）：\n${checkedCandidates.map(c => c.tweet1).join("\n")}`
+    : "";
+
+  const prompt = `あなたはX（旧Twitter）向け広告コピーライターです。
+
+商品情報：
+${answersText}${regenText}
+
+調整指示：
+${tuneText}
+${checkedText}
+
+以下の形式でX用スレッド広告を4セット生成してください。
+・1ツイート目：訴求（危機感または共感）。140文字以内。
+・2ツイート目：共感＋CTA。140文字以内。
+
+以下のJSONのみで返してください（他の文章は不要）：
+[
+  {"tweet1": "1ツイート目の文章", "tweet2": "2ツイート目の文章"},
+  {"tweet1": "...", "tweet2": "..."},
+  {"tweet1": "...", "tweet2": "..."},
+  {"tweet1": "...", "tweet2": "..."}
+]`;
+
+  try {
+    const res = await callClaude(prompt, 1200);
+    const clean = res.replace(/```json|```/g, "").trim();
+    currentCandidates = JSON.parse(clean);
+    loadEl.style.display = "none";
+    refreshBtn.disabled = false;
+    renderCandidates(currentCandidates);
+  } catch(e) {
+    loadEl.style.display = "none";
+    refreshBtn.disabled = false;
+    errEl.innerHTML = `<div class="error-msg">生成に失敗しました。もう一度お試しください。<br><small>${e.message}</small></div>`;
+  }
+};
+
+function renderCandidates(candidates) {
+  const container = document.getElementById("candidates-container");
+  container.innerHTML = "";
+
+  candidates.forEach((c, i) => {
+    const card = document.createElement("div");
+    card.className = "candidate-card";
+    card.dataset.index = i;
+
+    const isChecked = checkedCandidates.some(cc => cc.tweet1 === c.tweet1);
+    if(isChecked) card.classList.add("checked");
+
+    card.innerHTML = `
+      <div class="card-check">${isChecked ? "✓" : ""}</div>
+      <div class="tweet-label">TWEET 1</div>
+      <div class="tweet-1">${c.tweet1}</div>
+      <div class="tweet-label">TWEET 2</div>
+      <div class="tweet-2">${c.tweet2}</div>
+    `;
+
+    card.onclick = () => {
+      card.classList.toggle("checked");
+      const check = card.querySelector(".card-check");
+      if(card.classList.contains("checked")) {
+        check.textContent = "✓";
+        checkedCandidates.push(c);
+      } else {
+        check.textContent = "";
+        checkedCandidates = checkedCandidates.filter(cc => cc.tweet1 !== c.tweet1);
+      }
+    };
+
+    container.appendChild(card);
+  });
+
+  // 出力ボタン
+  const outBtn = document.createElement("button");
+  outBtn.className = "btn-next";
+  outBtn.style.marginTop = "24px";
+  outBtn.textContent = "選択した候補を出力 →";
+  outBtn.onclick = showOutput;
+  container.appendChild(outBtn);
+}
+
+// ── Regen freeword ──
+window.addRegenWord = () => {
+  const input = document.getElementById("regen-freeword");
+  const word = input.value.trim();
+  if(!word) return;
+  regenWords.push(word);
+  const tags = document.getElementById("regen-tags");
+  const tag = document.createElement("div");
+  tag.className = "freeword-tag";
+  tag.dataset.word = word;
+  tag.innerHTML = `${word} <span class="tag-remove" onclick="this.parentElement.remove(); window.removeRegenWord('${word}')">×</span>`;
+  tags.appendChild(tag);
+  input.value = "";
+  saveFreeword(word, "regen");
+};
+
+window.removeRegenWord = (word) => {
+  regenWords = regenWords.filter(w => w !== word);
+};
+
+// ── Tune ──
+window.setTune = (btn) => {
+  const group = btn.dataset.group;
+  const val = btn.dataset.val;
+  document.querySelectorAll(`[data-group="${group}"]`).forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  tuneState[group] = val;
+};
+
+// ── Output ──
+function showOutput() {
+  const targets = checkedCandidates.length > 0 ? checkedCandidates : currentCandidates.slice(0,1);
+
+  document.getElementById("output-section").style.display = "block";
+  document.getElementById("output-container").innerHTML = "";
+
+  document.getElementById("dot-2").classList.remove("active");
+  document.getElementById("dot-2").classList.add("done");
+  document.getElementById("dot-3").classList.add("active");
+  document.getElementById("step-label").textContent = "ステップ 3 / 3　出力";
+
+  targets.forEach((c, i) => {
+    const block = document.createElement("div");
+    block.className = "output-block";
+    const fullText = `${c.tweet1}\n\n${c.tweet2}`;
+    block.innerHTML = `
+      <div class="output-platform">X / THREAD ${i+1}</div>
+      <div class="output-text">${fullText}</div>
+      <button class="btn-copy" onclick="copyText(this, \`${fullText.replace(/`/g,"\\`")}\`)">
+        📋 コピー
+      </button>
+    `;
+    document.getElementById("output-container").appendChild(block);
+  });
+
+  // Firestoreに保存
+  saveSession(targets);
+
+  document.getElementById("output-section").scrollIntoView({ behavior: "smooth" });
+}
+
+window.copyText = (btn, text) => {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = "✓ コピーしました";
+    btn.classList.add("copied");
+    setTimeout(() => {
+      btn.textContent = "📋 コピー";
+      btn.classList.remove("copied");
+    }, 2000);
+  });
+};
+
+// ── Firestore: save session ──
+async function saveSession(outputs) {
+  if(!currentUser) return;
+  try {
+    await setDoc(doc(db, "sessions", `${currentUser.uid}_${Date.now()}`), {
+      uid: currentUser.uid,
+      answers: wizardAnswers,
+      outputs,
+      tuneState,
+      regenWords,
+      createdAt: serverTimestamp()
+    });
+  } catch(e) { console.log("session save:", e); }
+}
+
+// ── Claude API call ──
+async function callClaude(prompt, maxTokens = 1000) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_KEY,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-allow-browser": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: maxTokens,
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+  if(!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.content[0].text;
+}
+</script>
+</body>
+</html>
