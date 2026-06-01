@@ -714,6 +714,12 @@ let currentCandidates = [];
 // ── Questions (初期3問・その後動的生成) ──
 const INITIAL_QUESTIONS = [
   {
+    {
+    id: "purpose",
+    text: "目的を教えてください。",
+    options: ["商品・サービスの販売・認知拡大","求人募集（人を採用したい）"]
+  },
+  {
     id: "media",
     text: "どの媒体に広告を出したいですか？（複数選択可）",
     options: ["X（旧Twitter）","Instagram","note","Facebook","LINE","求人媒体（マイナビ等）","チラシ・印刷物"]
@@ -868,9 +874,15 @@ window.nextStep = async (questionId) => {
   const fwTags = [...document.querySelectorAll("#wizard-freeword-tags .freeword-tag")].map(t => t.dataset.word);
   wizardAnswers[questionId] = [...selected, ...fwTags];
 
-  wizardStep++;
+ wizardStep++;
   if(wizardStep < INITIAL_QUESTIONS.length) {
-    renderQuestion(INITIAL_QUESTIONS[wizardStep]);
+    let nextQ = INITIAL_QUESTIONS[wizardStep];
+    // 目的が「商品・サービス」の場合は求人媒体を除外
+    if(nextQ.id === "media" && wizardAnswers["purpose"] &&
+       !wizardAnswers["purpose"].includes("求人募集（人を採用したい）")) {
+      nextQ = { ...nextQ, options: nextQ.options.filter(o => !o.includes("求人媒体")) };
+    }
+    renderQuestion(nextQ);
   } else if(wizardStep < 5) {
     // 動的に追加質問を生成
     await generateNextQuestion();
