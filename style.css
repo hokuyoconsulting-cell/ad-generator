@@ -1,0 +1,27 @@
+:root { --fg:#222; --bg:#fafafa; --line:#ccc; --accent:#c0392b; --soft:#fff3e0; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: system-ui, "Hiragino Sans", "Yu Gothic", sans-serif; color:var(--fg); background:var(--bg); line-height:1.6; }
+header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); background:#fff; }
+header h1 { font-size:1.1rem; margin:0; }
+#who { font-size:.8rem; color:#666; }
+main { max-width:640px; margin:0 auto; padding:16px; }
+h2 { font-size:1.1rem; } h3 { font-size:1rem; margin-top:24px; }
+label { display:block; margin:12px 0; font-size:.95rem; }
+input, select, textarea { display:block; width:100%; margin-top:4px; padding:8px; font-size:1rem; border:1px solid var(--line); border-radius:6px; background:#fff; }
+textarea { min-height:64px; }
+button { display:block; width:100%; margin:12px 0; padding:12px; font-size:1rem; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; }
+button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+button:disabled { opacity:.4; cursor:not-allowed; }
+.note { font-size:.85rem; color:#666; }
+.label { font-weight:bold; margin-bottom:4px; }
+.error { color:var(--accent); font-size:.9rem; }
+.choices { display:flex; flex-wrap:wrap; gap:8px; }
+.chip { display:inline-flex; align-items:center; gap:4px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:#fff; font-size:.9rem; margin:0; cursor:pointer; }
+.chip input { display:inline; width:auto; margin:0; }
+.chip.checked { border-color:var(--accent); background:var(--soft); }
+.prev-mark { display:inline-block; font-size:.7rem; padding:0 6px; border-radius:4px; background:#555; color:#fff; margin-left:4px; }
+.item { padding:12px 0; border-bottom:1px solid #eee; }
+.item .name { font-weight:bold; }
+.item .group { font-size:.75rem; color:#999; margin-right:6px; }
+.item .meaning { font-size:.8rem; color:#666; margin-top:6px; }
+.caution { background:var(--soft); padding:12px 12px 12px 28px; border-radius:8px; font-size:.9rem; }
