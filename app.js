@@ -168,8 +168,8 @@ async function loadText(path) {
 }
 
 async function buildPrompt(mode) {
-  const body = await loadText("prompt/body.txt");
-  const tail = await loadText(mode === "free" ? "prompt/free.txt" : "prompt/paid.txt");
+  const body = await loadText("body.txt");
+  const tail = await loadText(mode === "free" ? "free.txt" : "paid.txt");
   return body
     .replace("{{商品の情報}}", productBlock())
     .replace("{{見てほしい人}}", targetBlock())
