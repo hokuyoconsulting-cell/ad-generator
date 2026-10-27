@@ -65,15 +65,52 @@ $("btn-read-url").onclick = () => {
 $("btn-product-next").onclick = () => {
   if (!state.category) return ($("url-status").textContent = "商品の種類を選んでください。");
   if (state.category === "当てはまるものがない") return show("s-refuse");
+  // URLを読んだ人には要点を見せて「足したいこと」、ない人には「商品の説明」を聞く
+  const has = !!state.summary;
+  $("input-summary-box").hidden = !has;
+  $("input-summary").textContent = state.summary;
+  $("add-label").textContent = has ? "この要点に足したいこと（任意）" : "商品の説明（任意）";
+  $("in-add").placeholder = has ? "" : "例：LINEで質問に答えると、AIが強みを分析します";
   show("s-input");
 };
 
+  // ---- 申込方法 ----
+  // 行き先は3つの媒体とも「プロフィールから」。プロフィールに載っているかを、作る人に確かめる
+  const APPLY = {
+    "プロフィールのリンクから": { ad: "お申し込みはプロフィールのリンクから",
+      q: "TikTok・Instagram・Xのプロフィールに、申し込みページのリンクを載せていますか？", ok: "載せている（投稿までに載せる）" },
+    "プロフィールの電話番号から": { ad: "ご予約はプロフィールの電話番号へ",
+      q: "TikTok・Instagram・Xのプロフィールに、電話番号を載せていますか？", ok: "載せている（投稿までに載せる）" },
+    "プロフィールの住所（お店）へ": { ad: "場所はプロフィールをご覧ください",
+      q: "TikTok・Instagram・Xのプロフィールに、お店の住所を載せていますか？", ok: "載せている（投稿までに載せる）" },
+    "DMで": { ad: "お申し込みはDMで",
+      q: "TikTok・Instagram・Xで、DMを受け取れる設定になっていますか？", ok: "なっている（投稿までに設定する）" },
+  };
+  const CAUTION_APPLY = {
+    "プロフィールのリンクから": "TikTok・Instagram・Xのプロフィールに、申し込みページのリンクを載せてください（本文には入れません）。",
+    "プロフィールの電話番号から": "TikTok・Instagram・Xのプロフィールに、電話番号を載せてください。",
+    "プロフィールの住所（お店）へ": "TikTok・Instagram・Xのプロフィールに、お店の住所を載せてください。",
+    "DMで": "TikTok・Instagram・Xで、DMを受け取れる設定にしてください。",
+  };
+  $("apply").innerHTML = Object.keys(APPLY).map((k) =>
+    `<label class="chip"><input type="radio" name="apply" value="${k}">${k}</label>`).join("");
+  $("apply").onchange = (e) => {
+    state.apply = e.target.value;
+    markChecked($("apply"));
+    $("apply-confirm-box").hidden = false;
+    $("apply-question").textContent = APPLY[state.apply].q;
+    $("apply-confirm-text").textContent = APPLY[state.apply].ok;
+    $("apply-confirm").checked = false;
+  };
+
 // ---- 記入 ----
 $("btn-input-next").onclick = () => {
-  const need = [["in-strength", "伝えたい強み"], ["in-name", "名称"], ["in-price", "価格"], ["in-apply", "申込方法"],
+  const need = [["in-strength", "伝えたい強み"], ["in-name", "商品・サービスの名前"], ["in-price", "価格"],
     ["in-age", "年齢層"], ["in-sex", "性別"], ["in-stage", "ライフステージ"]];
   const empty = need.filter(([id]) => !$(id).value.trim()).map(([, n]) => n);
+  if (!state.apply) empty.push("申込方法");
   if (empty.length) return ($("input-error").textContent = "まだ入っていません：" + empty.join("・"));
+  if (!$("apply-confirm").checked) return ($("input-error").textContent = "申込方法の情報をプロフィールに載せてから使ってください。");
   $("input-error").textContent = "";
   // 前回の選択を最初から入れておく（印も付ける）
   state.card = { ...state.prevCard };
@@ -149,6 +186,7 @@ $("btn-free").onclick = async () => {
   if (state.usedFreeToday) return;
   $("prompt-out").value = await buildPrompt("free");
   $("caution-photo").hidden = !$("in-photo").files.length;
+  $("caution-apply").textContent = CAUTION_APPLY[state.apply];
   // 準備中（3番）：ここで「今日の無料を使った」と使うたびの記録をFirebaseに残す
   show("s-free");
 };
@@ -182,14 +220,15 @@ function productBlock() {
   return [
     head("1. 商品の情報"),
     `・種類：${state.category}`,
-    `・商品の要点：${state.summary || "なし"}`,
-    `・要点への付け足し：${val("in-add")}`,
+    ...(state.summary
+      ? [`・商品の要点：${state.summary}`, `・要点への付け足し：${val("in-add")}`]
+      : [`・商品の説明：${val("in-add")}`]),
     `・今回のネタ：${val("in-neta")}`,
     `・今回の広告で伝えたい強み：${val("in-strength")}`,
     "　→ この広告で伝える強みは、これ1つだけにしてください。",
     `・名称：${val("in-name")}`,
     `・価格：${val("in-price")}`,
-    `・申込方法：${val("in-apply")}`,
+    `・申込方法：${APPLY[state.apply].ad}`,
     "　→ 名称・価格・申込方法は、どの文にも必ず入れてください。書かれたとおりに書き、言いかえないでください。",
     `・商品の写真：${photo}`,
     "　→ 写真は、商品の見た目を知るための資料です。広告の中に写真そのものを貼らないでください。",
