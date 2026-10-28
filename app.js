@@ -6,6 +6,7 @@ import { firebaseConfig } from "./firebase-config.js";
 import { CATEGORIES, ITEMS, HUMAN, isAsked } from "./shukou.js";
 
 const $ = (id) => document.getElementById(id);
+const WORKER_URL = "https://ad-generator-worker.hokuyo-consulting.workers.dev"; 
 
 // ---- 今の状態 ----
 const state = {
@@ -59,9 +60,36 @@ $("category").onchange = (e) => {
   state.category = e.target.value;
   markChecked($("category"));
 };
-$("btn-read-url").onclick = () => {
-  $("url-status").textContent = "準備中（作る順番の2番で作ります）。今は種類を選んで進んでください。";
+$("btn-read-url").onclick = async () => {
+  const target = $("in-url").value.trim();
+  if (!target) return ($("url-status").textContent = "URLを入れてください。");
+  $("url-status").textContent = "読んでいます…（10秒ほどかかります）";
+  $("btn-read-url").disabled = true;
+  try {
+    const token = await state.user.getIdToken();
+    const r = await fetch(WORKER_URL + "/read-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({ target }),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error);
+    state.summary = j.summary;
+    $("summary").textContent = j.summary;
+    $("summary-box").hidden = false;
+    if (j.category) {
+      document.querySelector(`input[name="category"][value="${j.category}"]`).checked = true;
+      state.category = j.category;
+      markChecked($("category"));
+    }
+    $("url-status").textContent = "読みました。種類が合っているか確かめてください。";
+  } catch (e) {
+    $("url-status").textContent = "読めませんでした：" + e.message + "。種類を選んで進むこともできます。";
+  } finally {
+    $("btn-read-url").disabled = false;
+  }
 };
+
 $("btn-product-next").onclick = () => {
   if (!state.category) return ($("url-status").textContent = "商品の種類を選んでください。");
   if (state.category === "当てはまるものがない") return show("s-refuse");
