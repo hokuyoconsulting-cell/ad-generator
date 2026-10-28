@@ -59,7 +59,9 @@ $("category").innerHTML = CATEGORIES.map((c) =>
 $("category").onchange = (e) => {
   state.category = e.target.value;
   markChecked($("category"));
+  if (state.category === "当てはまるものがない") show("s-refuse");
 };
+
 $("btn-read-url").onclick = async () => {
   const target = $("in-url").value.trim();
   if (!target) return ($("url-status").textContent = "URLを入れてください。");
@@ -85,7 +87,11 @@ $("btn-read-url").onclick = async () => {
     // 読めた商品名・価格は、記入の欄が空のときだけ入れる（あとで書き直せる）
     if (j.name && !$("in-name").value.trim()) $("in-name").value = j.name;
     if (j.price && !$("in-price").value.trim()) $("in-price").value = j.price;
-    $("url-status").textContent = "読みました。種類が合っているか確かめてください。";
+     // URLを読んだ人は「この要点に足したいこと」を聞く
+    $("add-label").textContent = "この要点に足したいこと（任意）";
+    $("in-add").placeholder = "";
+    $("url-status").textContent = `読みました（名前：${j.name || "読めず"}／価格：${j.price || "読めず"}）。種類・名前・価格が合っているか確かめてください。`;
+
   } catch (e) {
     $("url-status").textContent = "読めませんでした：" + e.message + "。種類を選んで進むこともできます。";
   } finally {
@@ -93,17 +99,6 @@ $("btn-read-url").onclick = async () => {
   }
 };
 
-$("btn-product-next").onclick = () => {
-  if (!state.category) return ($("url-status").textContent = "商品の種類を選んでください。");
-  if (state.category === "当てはまるものがない") return show("s-refuse");
-  // URLを読んだ人には要点を見せて「足したいこと」、ない人には「商品の説明」を聞く
-  const has = !!state.summary;
-  $("input-summary-box").hidden = !has;
-  $("input-summary").textContent = state.summary;
-  $("add-label").textContent = has ? "この要点に足したいこと（任意）" : "商品の説明（任意）";
-  $("in-add").placeholder = has ? "" : "例：LINEで質問に答えると、AIが強みを分析します";
-  show("s-input");
-};
 
   // ---- 申込方法 ----
   // 行き先は3つの媒体とも「プロフィールから」。プロフィールに載っているかを、作る人に確かめる
@@ -140,6 +135,8 @@ $("btn-input-next").onclick = () => {
     ["in-age", "年齢層"], ["in-sex", "性別"], ["in-stage", "ライフステージ"]];
   const empty = need.filter(([id]) => !$(id).value.trim()).map(([, n]) => n);
   if (!state.apply) empty.push("申込方法");
+  if (!state.category) empty.unshift("商品の種類");
+
   if (empty.length) return ($("input-error").textContent = "まだ入っていません：" + empty.join("・"));
   if (!$("apply-confirm").checked) return ($("input-error").textContent = "申込方法の情報をプロフィールに載せてから使ってください。");
   $("input-error").textContent = "";
