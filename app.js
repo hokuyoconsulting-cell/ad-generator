@@ -82,6 +82,9 @@ $("btn-read-url").onclick = async () => {
       state.category = j.category;
       markChecked($("category"));
     }
+    // 読めた商品名・価格は、記入の欄が空のときだけ入れる（あとで書き直せる）
+    if (j.name && !$("in-name").value.trim()) $("in-name").value = j.name;
+    if (j.price && !$("in-price").value.trim()) $("in-price").value = j.price;
     $("url-status").textContent = "読みました。種類が合っているか確かめてください。";
   } catch (e) {
     $("url-status").textContent = "読めませんでした：" + e.message + "。種類を選んで進むこともできます。";
