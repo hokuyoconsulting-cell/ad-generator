@@ -7,7 +7,7 @@ export const CATEGORIES = [
 ];
 
 // 主人公が「人」の選択肢（14〜16を聞くもの）
-export const HUMAN = ['OL', '学生', '会社員', 'お年寄り', 'お店の人'];
+export const HUMAN = ['学生', '会社員', 'お年寄り', 'お店の人'];
 
 export const ITEMS = [
   { no: 1, group: '話', name: '話の味つけ', type: 'multi',
@@ -88,7 +88,7 @@ export const ITEMS = [
     options: ['前回と同じ', '新しい主人公'],
     hint: '前回と同じ：前回の主人公を文字で伝えます。似た姿になりますが、まったく同じにはなりません。' },
   { no: 13, group: 'キャラ', name: '主人公', type: 'one',
-    options: ['OL', '猫', '犬', '学生', '会社員', 'お年寄り', 'お店の人', '商品に顔や手足', 'おまかせ'] },
+options: ['猫', '犬', '学生', '会社員', 'お年寄り', 'お店の人', '商品に顔や手足', 'おまかせ'] },
   { no: 14, group: 'キャラ', name: '主人公の年齢層', type: 'one',
     options: ['10代', '20代', '30代', '40代', '50代以上', '見てほしい人に合わせる'] },
   { no: 15, group: 'キャラ', name: '主人公の性別', type: 'one',
