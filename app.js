@@ -210,7 +210,13 @@ $("btn-card-next").onclick = () => {
     const v = state.card[it.no];
     return Array.isArray(v) ? v.length === 0 : !v || !String(v).trim();
   }).map((it) => it.no);
-  if (missing.length) return ($("card-error").textContent = "まだ選んでいない項目：" + missing.join("・"));
+if (missing.length) return ($("card-error").textContent = "まだ選んでいない項目：" + missing.join("・"));
+const c = state.card;
+const clash = [];
+if ((c[13] === "学生" && c[16] === "会社員") || (c[13] === "会社員" && c[16] === "学生")) clash.push("主人公と立場");
+if (c[13] === "お年寄り" && ["10代", "20代", "30代", "40代"].includes(c[14])) clash.push("主人公と年齢層");
+if (clash.length && !confirm(clash.join("・") + "が食い違っています。このまま進みますか？")) return;
+$("card-error").textContent = "";
   $("card-error").textContent = "";
   // 今日の無料を使った人は、無料枠を押せない
   $("btn-free").disabled = state.usedFreeToday;
