@@ -40,10 +40,12 @@
     <p id="summary"></p>
   </div>
   <label><span id="add-label">商品の説明（任意）</span><textarea id="in-add" placeholder="例：LINEで質問に答えると、AIが強みを分析します"></textarea></label>
-  <p class="label">商品の種類（1つ選ぶ。URLを読んだ方は、合っているか確かめてください）</p>
+<p class="label">商品の種類（1つ選ぶ。URLを読んだ方は、合っているか確かめてください）<span id="fu-category" hidden>（URLから入れました）</span></p>
   <div id="category" class="choices"></div>
-  <label>商品・サービスの名前（必須）<input id="in-name" placeholder="例：面接官の目線"></label>
-  <label>価格（必須。書いたとおりに広告に入ります）<input id="in-price" placeholder="例：3,300円／無料／月1,000円"></label>
+<label>商品・サービスの名前（必須）<span id="fu-name" hidden>（URLから入れました）</span>
+<input id="in-name" placeholder="例：面接官の目線"></label>
+<label>価格（必須。書いたとおりに広告に入ります）<span id="fu-price" hidden>（URLから入れました）</span>
+<input id="in-price" placeholder="例：3,300円／無料／月1,000円"></label>
   <p class="label">申込方法（必須）</p>
   <div id="apply" class="choices"></div>
   <div id="apply-confirm-box" hidden>
@@ -65,11 +67,12 @@
     <option>学生</option><option>社会人</option><option>夫婦・カップル</option><option>子育て中</option><option>シニア</option><option>決めない</option>
   </select></label>
   <h3>今回の広告</h3>
-  <label>今回のネタ（任意）<textarea id="in-neta"></textarea></label>
+<label>今回のネタ（任意）<textarea id="in-neta" placeholder="例：期間限定20％OFF（11/20〜11/30）／新メニューを追加"></textarea></label>
   <label>今回の広告で伝えたい強み（1つ・必須）<textarea id="in-strength"></textarea></label>
-  <label>商品の写真（任意。広告には貼りません。見た目を知る資料にだけ使い、保存しません）
-    <input id="in-photo" type="file" accept="image/*">
-  </label>
+<label>商品の写真（任意。保存しません）
+<input id="in-photo" type="file" accept="image/*">
+</label>
+<p class="note">写真は、商品の見た目を伝えるための参考です。写真そのものは貼らず、写真を見て描いた絵がマンガに入ります。無料のときは、プロンプトと一緒に写真もご自分のAIに貼ってください。</p>
   <p id="input-error" class="error"></p>
   <button id="btn-input-next" class="primary">次へ（趣向カード）</button>
 </section>
