@@ -80,25 +80,32 @@ $("btn-read-url").onclick = async () => {
     $("summary").textContent = j.summary;
     $("summary-box").hidden = false;
 const catBox = j.category && document.querySelector(`input[name="category"][value="${j.category}"]`);
+const filled = [];
 if (catBox) {
 catBox.checked = true;
 state.category = j.category;
 markChecked($("category"));
+$("fu-category").hidden = false;
+filled.push("種類");
 }
-    // 読めた商品名・価格は、記入の欄が空のときだけ入れる（あとで書き直せる）
-    if (j.name && !$("in-name").value.trim()) $("in-name").value = j.name;
-    if (j.price && !$("in-price").value.trim()) $("in-price").value = j.price;
-     // URLを読んだ人は「この要点に足したいこと」を聞く
+// 読めた商品名・価格は、記入の欄が空のときだけ入れる（あとで書き直せる）
+if (j.name && !$("in-name").value.trim()) { $("in-name").value = j.name; $("fu-name").hidden = false; filled.push("名前"); }
+if (j.price && !$("in-price").value.trim()) { $("in-price").value = j.price; $("fu-price").hidden = false; filled.push("価格"); }     // URLを読んだ人は「この要点に足したいこと」を聞く
     $("add-label").textContent = "この要点に足したいこと（任意）";
     $("in-add").placeholder = "";
-    $("url-status").textContent = `読みました（名前：${j.name || "読めず"}／価格：${j.price || "読めず"}）。種類・名前・価格が合っているか確かめてください。`;
+$("url-status").textContent = filled.length
+? "「URLから入れました」と出ている項目は、URLからAIが参照し、入力したものです。確認し、必要なら修正してください。"
+: "要点を読みました。種類・名前・価格は入れていないので、ご自分で入れてください。";
 
   } catch (e) {
     $("url-status").textContent = "読めませんでした：" + e.message + "。種類を選んで進むこともできます。";
-  } finally {
-    $("btn-read-url").disabled = false;
-  }
+} finally {
+$("btn-read-url").disabled = false;
+}
 };
+$("in-name").addEventListener("input", () => ($("fu-name").hidden = true));
+$("in-price").addEventListener("input", () => ($("fu-price").hidden = true));
+$("category").addEventListener("change", () => ($("fu-category").hidden = true));
 
 
   // ---- 申込方法 ----
@@ -261,7 +268,8 @@ function productBlock() {
     `・申込方法：${APPLY[state.apply].ad}`,
     "　→ 名称・価格・申込方法は、どの文にも必ず入れてください。書かれたとおりに書き、言いかえないでください。",
     `・商品の写真：${photo}`,
-    "　→ 写真は、商品の見た目を知るための資料です。広告の中に写真そのものを貼らないでください。",
+"　→ 写真は、商品の見た目を知るための資料です。広告の中に写真そのものを貼らないでください。",
+"　→ 写真が一緒に届いていないときは、写真なしとして作ってください。",
     // 準備中：色で「商品やお店の色に合わせる」を選んだときの「商品やお店の色」の行
   ].join("\n");
 }
