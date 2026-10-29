@@ -79,11 +79,12 @@ $("btn-read-url").onclick = async () => {
     state.summary = j.summary;
     $("summary").textContent = j.summary;
     $("summary-box").hidden = false;
-    if (j.category) {
-      document.querySelector(`input[name="category"][value="${j.category}"]`).checked = true;
-      state.category = j.category;
-      markChecked($("category"));
-    }
+const catBox = j.category && document.querySelector(`input[name="category"][value="${j.category}"]`);
+if (catBox) {
+catBox.checked = true;
+state.category = j.category;
+markChecked($("category"));
+}
     // 読めた商品名・価格は、記入の欄が空のときだけ入れる（あとで書き直せる）
     if (j.name && !$("in-name").value.trim()) $("in-name").value = j.name;
     if (j.price && !$("in-price").value.trim()) $("in-price").value = j.price;
@@ -135,7 +136,8 @@ $("btn-input-next").onclick = () => {
     ["in-age", "年齢層"], ["in-sex", "性別"], ["in-stage", "ライフステージ"]];
   const empty = need.filter(([id]) => !$(id).value.trim()).map(([, n]) => n);
   if (!state.apply) empty.push("申込方法");
-  if (!state.category) empty.unshift("商品の種類");
+if (!state.category) empty.unshift("商品の種類");
+if (state.category === "当てはまるものがない") return show("s-refuse");
 
   if (empty.length) return ($("input-error").textContent = "まだ入っていません：" + empty.join("・"));
   if (!$("apply-confirm").checked) return ($("input-error").textContent = "申込方法の情報をプロフィールに載せてから使ってください。");
