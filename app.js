@@ -81,7 +81,7 @@ $("btn-read-url").onclick = async () => {
     $("summary-box").hidden = false;
 const catBox = j.category && document.querySelector(`input[name="category"][value="${j.category}"]`);
 const filled = [];
-if (catBox) {
+if (catBox && !state.category) {
 catBox.checked = true;
 state.category = j.category;
 markChecked($("category"));
