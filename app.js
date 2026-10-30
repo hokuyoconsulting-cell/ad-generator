@@ -34,11 +34,12 @@ if (firebaseConfig.apiKey === "ここに貼る") {
     '<p class="error">Firebaseの設定の値が、まだ入っていません（js/firebase-config.js）。</p>');
 } else {
   auth = getAuth(initializeApp(firebaseConfig));
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     state.user = user;
     if (!user) return show("s-login");
     $("who").textContent = user.displayName || user.email || "";
     loadMeanings();
+    await loadStatus();
     show(state.usedFreeToday ? "s-used" : "s-product");
     $("in-url").value = state.lastUrl;
   });
@@ -273,6 +274,19 @@ async function loadMeanings() {
     const j = await r.json();
     if (r.ok) ITEMS.forEach((it) => { if (j.meanings[it.no]) it.meanings = j.meanings[it.no]; });
   } catch (e) { /* 受け取れなくても、意味が出ないだけで進める */ }
+}
+
+
+// 今日の無料を使ったか・前回のURL・前回の趣向カードを、Workerから受け取る
+async function loadStatus() {
+  try {
+    const r = await callWorker("/status", {});
+    const j = await r.json();
+    if (!r.ok) return;
+    state.usedFreeToday = j.usedFreeToday;
+    state.lastUrl = j.lastUrl || "";
+    state.prevCard = j.prevCard || {};
+  } catch (e) { /* 受け取れなくても、無料枠のボタンでWorkerが確かめるので進める */ }
 }
 
 // プロンプトに入れる材料（お客さんが入れたもの）
