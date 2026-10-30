@@ -244,7 +244,7 @@ $("btn-free").onclick = async () => {
     $("prompt-out").value = j.prompt;
     $("caution-photo").hidden = !$("in-photo").files.length;
     $("caution-apply").textContent = CAUTION_APPLY[state.apply];
-    // 準備中（3番）：使うたびの記録をFirebaseに残す
+    // 使うたびの記録は、Workerがプロンプトを渡すときに残している
     show("s-free");
   } catch (e) {
     alertBox("s-mode", "プロンプトを作れませんでした：" + e.message);
@@ -292,6 +292,7 @@ async function loadStatus() {
 // プロンプトに入れる材料（お客さんが入れたもの）
 function promptInput() {
   return {
+    url: $("in-url").value.trim(),
     category: state.category,
     summary: state.summary,
     add: $("in-add").value,
