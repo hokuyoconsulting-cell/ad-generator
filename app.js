@@ -289,6 +289,8 @@ async function loadStatus() {
     state.lastUrl = j.lastUrl || "";
     state.prevCard = j.prevCard || {};
     state.lastInput = j.lastInput || {};
+  } catch (e) { /* 受け取れなくても、無料枠のボタンでWorkerが確かめるので進める */ }
+}
 
 // 1ページ目に前回の値を入れる。入れた欄の下に「前回と同じ回答です」を出し、お客さんが直すと消す
 function fillLast() {
