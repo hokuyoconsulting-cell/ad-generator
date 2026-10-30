@@ -75,7 +75,7 @@ $("btn-read-url").onclick = async () => {
       body: JSON.stringify({ target }),
     });
     const j = await r.json();
-    if (!r.ok) throw new Error(j.error);
+    if (!r.ok) throw Object.assign(new Error(j.error), { plain: j.plain });
     state.summary = j.summary;
     $("summary").textContent = j.summary;
     $("summary-box").hidden = false;
@@ -98,7 +98,7 @@ $("url-status").textContent = filled.length
 : "要点を読みました。種類・名前・価格は入れていないので、ご自分で入れてください。";
 
   } catch (e) {
-    $("url-status").textContent = "読めませんでした：" + e.message + "。種類を選んで進むこともできます。";
+    $("url-status").textContent = e.plain ? e.message : "読めませんでした：" + e.message + "。種類を選んで進むこともできます。";
 } finally {
 $("btn-read-url").disabled = false;
 }
