@@ -42,6 +42,7 @@ if (firebaseConfig.apiKey === "ここに貼る") {
     await loadStatus();
     show(state.usedFreeToday ? "s-used" : "s-product");
     $("in-url").value = state.lastUrl;
+    fillLast();
   });
 }
 $("btn-login").onclick = () =>
@@ -67,6 +68,7 @@ $("category").onchange = (e) => {
 $("btn-read-url").onclick = async () => {
   const target = $("in-url").value.trim();
   if (!target) return ($("url-status").textContent = "URLを入れてください。");
+  if (URL_FIELDS.some((k) => $("pn-" + k))) return ($("url-status").textContent = "URLから商品情報を取りたい方は、先に前回の回答をクリアしてください。");
   $("url-status").textContent = "読んでいます…（10秒ほどかかります）";
   $("btn-read-url").disabled = true;
   try {
@@ -286,7 +288,79 @@ async function loadStatus() {
     state.usedFreeToday = j.usedFreeToday;
     state.lastUrl = j.lastUrl || "";
     state.prevCard = j.prevCard || {};
-  } catch (e) { /* 受け取れなくても、無料枠のボタンでWorkerが確かめるので進める */ }
+    state.lastInput = j.lastInput || {};
+
+// 1ページ目に前回の値を入れる。入れた欄の下に「前回と同じ回答です」を出し、お客さんが直すと消す
+function fillLast() {
+  const L = state.lastInput || {};
+  if (!Object.values(L).some((v) => v)) return;
+  const mark = (el, key) => el.insertAdjacentHTML("afterend", `<p class="prev-note" id="pn-${key}">前回と同じ回答です</p>`);
+  const unmarkOnEdit = (el, key) => ["input", "change"].forEach((ev) => el.addEventListener(ev, () => $("pn-" + key)?.remove(), { once: true }));
+
+  $("s-product").insertAdjacentHTML("afterbegin",
+    '<p class="prev-banner">前回と同じ回答を入れています。期限や内容が今も正しいか、確かめてください。</p>');
+
+  // 要点（前回URLを読んだ人）
+  if (L.summary) {
+    state.summary = L.summary;
+    $("summary").textContent = L.summary;
+    $("summary-box").hidden = false;
+    $("add-label").textContent = "この要点に足したいこと（任意）";
+    $("in-add").placeholder = "";
+    mark($("summary"), "summary");
+  }
+  // 種類
+  const cat = L.category && document.querySelector(`input[name="category"][value="${L.category}"]`);
+  if (cat) {
+    cat.checked = true;
+    state.category = L.category;
+    markChecked($("category"));
+    mark($("category"), "category");
+    unmarkOnEdit($("category"), "category");
+  }
+  // 申込方法（「プロフィールに載せている」のチェックは、毎回入れてもらう）
+  const ap = L.apply && document.querySelector(`input[name="apply"][value="${L.apply}"]`);
+  if (ap) {
+    ap.checked = true;
+    $("apply").onchange({ target: ap });
+    mark($("apply"), "apply");
+    unmarkOnEdit($("apply"), "apply");
+  }
+  // 文字の欄・選ぶ欄
+  [["in-add", "add"], ["in-name", "name"], ["in-price", "price"], ["in-age", "age"], ["in-sex", "sex"],
+   ["in-stage", "stage"], ["in-neta", "neta"], ["in-strength", "strength"]].forEach(([id, key]) => {
+    if (!L[key]) return;
+    $(id).value = L[key];
+    if ($(id).value !== L[key]) return; // 選ぶ欄に、その選択肢がもうないとき
+    mark($(id), key);
+    unmarkOnEdit($(id), key);
+  });
+  // URLを読み直したい人のためのクリア
+  if (URL_FIELDS.some((k) => $("pn-" + k))) {
+    $("btn-read-url").insertAdjacentHTML("afterend",
+      '<p class="prev-note" id="clear-box">URLから商品情報を取りたい方は、先に前回の回答をクリアしてください。<br><button type="button" id="btn-clear-last">前回の回答をクリア</button></p>');
+    $("btn-clear-last").onclick = clearUrlFields;
+  }
+}
+
+// URLで入る所（要点・商品の説明・種類・名前・価格）だけ、前回の値を消す
+const URL_FIELDS = ["summary", "add", "category", "name", "price"];
+function clearUrlFields() {
+  state.summary = "";
+  $("summary").textContent = "";
+  $("summary-box").hidden = true;
+  $("add-label").textContent = "商品の説明（任意）";
+  $("in-add").placeholder = "例：LINEで質問に答えると、AIが強みを分析します";
+  $("in-add").value = "";
+  state.category = "";
+  document.querySelectorAll('input[name="category"]').forEach((x) => (x.checked = false));
+  markChecked($("category"));
+  $("in-name").value = "";
+  $("in-price").value = "";
+  ["fu-category", "fu-name", "fu-price"].forEach((id) => ($(id).hidden = true));
+  URL_FIELDS.forEach((k) => $("pn-" + k)?.remove());
+  $("clear-box").remove();
+  $("url-status").textContent = "";
 }
 
 // プロンプトに入れる材料（お客さんが入れたもの）
@@ -300,6 +374,7 @@ function promptInput() {
     strength: $("in-strength").value,
     name: $("in-name").value,
     price: $("in-price").value,
+    apply: state.apply,
     applyAd: APPLY[state.apply].ad,
     photo: $("in-photo").files.length > 0,
     age: $("in-age").value,
