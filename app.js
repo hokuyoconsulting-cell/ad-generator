@@ -38,6 +38,7 @@ if (firebaseConfig.apiKey === "ここに貼る") {
     state.user = user;
     if (!user) return show("s-login");
     $("who").textContent = user.displayName || user.email || "";
+    loadMeanings();
     show(state.usedFreeToday ? "s-used" : "s-product");
     $("in-url").value = state.lastUrl;
   });
@@ -217,7 +218,7 @@ if ((c[13] === "学生" && c[16] === "会社員") || (c[13] === "会社員" && c
 if (c[13] === "お年寄り" && ["10代", "20代", "30代", "40代"].includes(c[14])) clash.push("主人公と年齢層");
 if (clash.length && !confirm(clash.join("・") + "が食い違っています。このまま進みますか？")) return;
 $("card-error").textContent = "";
-  $("card-error").textContent = "";
+
   // 今日の無料を使った人は、無料枠を押せない
   $("btn-free").disabled = state.usedFreeToday;
   $("free-used-note").hidden = !state.usedFreeToday;
@@ -227,102 +228,73 @@ $("card-error").textContent = "";
 // ---- 有料枠を使いますか ----
 $("btn-free").onclick = async () => {
   if (state.usedFreeToday) return;
-  $("prompt-out").value = await buildPrompt("free");
-  $("caution-photo").hidden = !$("in-photo").files.length;
-  $("caution-apply").textContent = CAUTION_APPLY[state.apply];
-  // 準備中（3番）：ここで「今日の無料を使った」と使うたびの記録をFirebaseに残す
-  show("s-free");
+  $("btn-free").disabled = true;
+  try {
+    const r = await callWorker("/prompt", { mode: "free", ...promptInput() });
+    const j = await r.json();
+    if (r.status === 429 && j.usedFree) {
+      // 今日の無料はもう使っていた
+      state.usedFreeToday = true;
+      $("free-used-note").hidden = false;
+      return;
+    }
+    if (!r.ok) throw new Error(j.error);
+    state.usedFreeToday = true;
+    $("prompt-out").value = j.prompt;
+    $("caution-photo").hidden = !$("in-photo").files.length;
+    $("caution-apply").textContent = CAUTION_APPLY[state.apply];
+    // 準備中（3番）：使うたびの記録をFirebaseに残す
+    show("s-free");
+  } catch (e) {
+    alertBox("s-mode", "プロンプトを作れませんでした：" + e.message);
+  } finally {
+    $("btn-free").disabled = state.usedFreeToday;
+  }
 };
 $("btn-paid").onclick = () => show("s-paid"); // 準備中（4番）：決済へ
 $("btn-copy-prompt").onclick = () => {
   navigator.clipboard.writeText($("prompt-out").value).then(() => ($("btn-copy-prompt").textContent = "コピーしました"));
 };
 
-// ---- プロンプトを組み立てる ----
-const LINE = "────────────────";
-const head = (t) => `${LINE}\n${t}\n${LINE}`;
-const val = (id) => $(id).value.trim() || "なし";
-
-async function loadText(path) {
-  const r = await fetch(path, { cache: "no-cache" });
-  return r.text();
+// ---- Workerに頼む（プロンプトはWorkerで組み立てる。ここには置かない） ----
+async function callWorker(path, body) {
+  const token = await state.user.getIdToken();
+  return fetch(WORKER_URL + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: JSON.stringify(body),
+  });
 }
 
-async function buildPrompt(mode) {
-  const body = await loadText("body.txt");
-  const tail = await loadText(mode === "free" ? "free.txt" : "paid.txt");
-  return body
-    .replace("{{商品の情報}}", productBlock())
-    .replace("{{見てほしい人}}", targetBlock())
-    .replace("{{趣向カードの答え}}", cardBlock())
-    .trimEnd() + "\n\n" + tail;
+// 選んだものの意味は、ログインしたあとにWorkerから受け取って、画面に出す
+async function loadMeanings() {
+  try {
+    const r = await callWorker("/meanings", {});
+    const j = await r.json();
+    if (r.ok) ITEMS.forEach((it) => { if (j.meanings[it.no]) it.meanings = j.meanings[it.no]; });
+  } catch (e) { /* 受け取れなくても、意味が出ないだけで進める */ }
 }
 
-function productBlock() {
-  const photo = $("in-photo").files.length ? "写真あり" : "写真なし";
-  return [
-    head("1. 商品の情報"),
-    `・種類：${state.category}`,
-    ...(state.summary
-      ? [`・商品の要点：${state.summary}`, `・要点への付け足し：${val("in-add")}`]
-      : [`・商品の説明：${val("in-add")}`]),
-    `・今回のネタ：${val("in-neta")}`,
-    `・今回の広告で伝えたい強み：${val("in-strength")}`,
-    "　→ この広告で伝える強みは、これ1つだけにしてください。",
-    `・名称：${val("in-name")}`,
-    `・価格：${val("in-price")}`,
-    `・申込方法：${APPLY[state.apply].ad}`,
-    "　→ 名称・価格・申込方法は、どの文にも必ず入れてください。書かれたとおりに書き、言いかえないでください。",
-    `・商品の写真：${photo}`,
-"　→ 写真は、商品の見た目を知るための資料です。広告の中に写真そのものを貼らないでください。",
-"　→ 写真が一緒に届いていないときは、写真なしとして作ってください。",
-    // 準備中：色で「商品やお店の色に合わせる」を選んだときの「商品やお店の色」の行
-  ].join("\n");
+// プロンプトに入れる材料（お客さんが入れたもの）
+function promptInput() {
+  return {
+    category: state.category,
+    summary: state.summary,
+    add: $("in-add").value,
+    neta: $("in-neta").value,
+    strength: $("in-strength").value,
+    name: $("in-name").value,
+    price: $("in-price").value,
+    applyAd: APPLY[state.apply].ad,
+    photo: $("in-photo").files.length > 0,
+    age: $("in-age").value,
+    sex: $("in-sex").value,
+    stage: $("in-stage").value,
+    card: state.card,
+    savedCharacter: state.savedCharacter,
+    prevOmakase: state.prevOmakase,
+  };
 }
-
-function targetBlock() {
-  return [head("2. 見てほしい人"),
-    `・個人向け／年齢層：${$("in-age").value}／性別：${$("in-sex").value}／ライフステージ：${val("in-stage")}`].join("\n");
-}
-
-function answer(no) {
-  const it = ITEMS.find((x) => x.no === no);
-  const v = state.card[no];
-  const list = Array.isArray(v) ? v : [v];
-  const lines = [`・${it.name}：${list.join("、")}`];
-  if (it.meanings) list.forEach((o) => it.meanings[o] && lines.push(`　${list.length > 1 ? o + "：" : ""}${it.meanings[o]}`));
-  if (it.promptNote) lines.push(`　${it.promptNote}`);
-  return lines.join("\n");
-}
-
-function cardBlock() {
-  const c = state.card;
-  const has = !!state.savedCharacter;
-  const out = [head("3. 趣向カードの答え（お客さんが選んだもの）")];
-  out.push("【話】", answer(1), answer(2), answer(3));
-  if (c[2] === "オチなし" && c[3] === "3コマ目で落として4コマ目で商品の一言") out.push("　3コマ目は、笑わせずに小さく落としてください。");
-  if (c[2] === "オチなし" && c[3] === "毎コマに小ネタ") out.push("　4コマ目も、1〜3コマ目と同じ大きさにしてください。");
-  out.push("", "【文】", answer(4), answer(5), answer(6), answer(7));
-  // 色：「商品やお店の色に合わせる」で色が取れないときは「絵柄に任せる」と同じ（色の取り出しは準備中）
-  const color = c[9] === "商品やお店の色に合わせる" ? "絵柄に任せる" : c[9];
-  out.push("", "【絵】", answer(8), `・色：${color}`, answer(10), answer(11));
-  out.push("", "【主人公】");
-  if (has && c[12] === "前回と同じ") {
-    out.push(`・主人公：前回と同じ。前回の主人公の特徴：${state.savedCharacter}`, "　→ この特徴のとおりに描いてください。");
-  } else {
-    out.push(`・主人公：${c[13]}`);
-    if (HUMAN.includes(c[13])) out.push(`・年齢層：${c[14]}／性別：${c[15]}／立場：${c[16]}`);
-  }
-  out.push(answer(17));
-  out.push("", "【届け先】", answer(18));
-  out.push("", "【決まり】", answer(19));
-  out.push("", "【商品】", answer(20));
-  out.push("", "【「おまかせ」の項目】",
-    "・「おまかせ」になっている項目は、商品と見てほしい人に合うものを、あなたが選んでください。",
-    `・前回あなたが選んだもの（${state.prevOmakase}）と同じものは、なるべく避けてください。`);
-  return out.join("\n");
-}
-
 // ---- 小さな道具 ----
 function markChecked(box) {
   box.querySelectorAll(".chip").forEach((l) => l.classList.toggle("checked", l.querySelector("input").checked));
