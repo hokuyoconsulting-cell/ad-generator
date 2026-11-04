@@ -40,6 +40,7 @@ if (firebaseConfig.apiKey === "ここに貼る") {
     $("who").textContent = user.displayName || user.email || "";
     loadMeanings();
     await loadStatus();
+    if (await resumeOrder()) return;
     show(state.usedFreeToday ? "s-used" : "s-product");
     $("in-url").value = state.lastUrl;
     fillLast();
@@ -254,7 +255,116 @@ $("btn-free").onclick = async () => {
     $("btn-free").disabled = state.usedFreeToday;
   }
 };
-$("btn-paid").onclick = () => show("s-paid"); // 準備中（4番）：決済へ
+$("btn-paid").onclick = () => show("s-paid");
+
+// ---- 有料：支払いへ進む → 戻ったら文と絵を作る ----
+const ORDER_KEY = "adGeneratorOrder";
+const MSG_MAKING = "広告を作っています。このままお待ちください。";
+const MSG_SLOW = "広告を作っています。いつもより時間がかかっています。このままお待ちください。";
+
+function savedOrder() {
+  try { return localStorage.getItem(ORDER_KEY) || ""; } catch { return ""; }
+}
+function keepOrder(orderId) {
+  try {
+    if (orderId) localStorage.setItem(ORDER_KEY, orderId);
+    else localStorage.removeItem(ORDER_KEY);
+  } catch { /* 残せなくても進める */ }
+}
+
+$("btn-pay").onclick = async () => {
+  $("btn-pay").disabled = true;
+  $("paid-error").textContent = "";
+  try {
+    const r = await callWorker("/order", promptInput());
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error);
+    keepOrder(j.orderId);
+    location.href = j.payUrl;
+  } catch (e) {
+    $("paid-error").textContent = "支払いの画面を開けませんでした：" + e.message;
+    $("btn-pay").disabled = false;
+  }
+};
+
+$("btn-order-reset").onclick = () => {
+  keepOrder("");
+  location.reload();
+};
+
+// 支払い待ちの注文があれば、払われたかを確かめて作り始める
+async function resumeOrder() {
+  const orderId = savedOrder();
+  if (!orderId) return false;
+  $("btn-order-reset").hidden = true;
+  $("making-status").textContent = "お支払いを確かめています…";
+  show("s-making");
+  for (let i = 0; i < 10; i++) {
+    try {
+      const r = await callWorker("/order-status", { orderId });
+      const j = await r.json();
+      if (!r.ok) {
+        keepOrder("");
+        return false;
+      }
+      if (j.status === "支払い済み") {
+        await makeAd(orderId);
+        return true;
+      }
+    } catch (e) { /* 通信の失敗は、もう一度確かめる */ }
+    await new Promise((done) => setTimeout(done, 3000));
+  }
+  $("making-status").textContent = "お支払いを確かめられませんでした。お支払いがお済みでない場合は、最初に戻ってください。";
+  $("btn-order-reset").hidden = false;
+  return true;
+}
+
+async function makeAd(orderId) {
+  $("making-status").textContent = MSG_MAKING;
+  try {
+    const r = await callWorker("/paid-text", { orderId });
+    const j = await r.json();
+    if (!r.ok) throw Object.assign(new Error(j.error), { code: j.code });
+    const images = await Promise.all([1, 2, 3, 4].map((no) => drawPanel(orderId, no)));
+    showDone(j.result, images);
+    keepOrder("");
+  } catch (e) {
+    $("making-status").textContent = "広告を作れませんでした（" + e.message + "）";
+    $("btn-order-reset").hidden = false;
+  }
+}
+
+// 絵を1枚描く。失敗したら自動で1回だけ描き直す
+async function drawPanel(orderId, no) {
+  try {
+    return await requestPanel(orderId, no);
+  } catch (e) {
+    if (e.code === "no_balance") throw e;
+    $("making-status").textContent = MSG_SLOW;
+    return await requestPanel(orderId, no);
+  }
+}
+async function requestPanel(orderId, no) {
+  const r = await callWorker("/paid-image", { orderId, no });
+  const j = await r.json();
+  if (!r.ok) throw Object.assign(new Error(j.error), { code: j.code });
+  return "data:image/png;base64," + j.data[0].b64_json;
+}
+
+function showDone(result, images) {
+  $("done-panels").innerHTML = images.map((src, i) =>
+    `<a href="${src}" download="koma${i + 1}.png"><img src="${src}" alt="${i + 1}コマ目" style="width:100%;display:block"></a>`).join("");
+  $("done-tiktok").value = result.TikTok;
+  $("done-instagram").value = result.Instagram;
+  $("done-x").value = result.X;
+  show("s-done");
+}
+
+document.querySelectorAll(".copy-text").forEach((button) => {
+  button.onclick = () => {
+    navigator.clipboard.writeText($(button.dataset.target).value).then(() => (button.textContent = "コピーしました"));
+  };
+});
 $("btn-copy-prompt").onclick = () => {
   navigator.clipboard.writeText($("prompt-out").value).then(() => ($("btn-copy-prompt").textContent = "コピーしました"));
 };
