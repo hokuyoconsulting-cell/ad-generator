@@ -261,6 +261,8 @@ $("btn-paid").onclick = () => show("s-paid");
 const ORDER_KEY = "adGeneratorOrder";
 const MSG_MAKING = "広告を作っています。このままお待ちください。";
 const MSG_SLOW = "広告を作っています。いつもより時間がかかっています。このままお待ちください。";
+const MSG_REFUNDED = "申し訳ありません。今回は広告を作ることができませんでした。お支払いいただいた110円は、全額返金しました。カード会社によっては、明細に反映されるまで日数がかかることがあります。時間をおいて、もう一度お試しください。";
+const MSG_REFUND_PENDING = "申し訳ありません。今回は広告を作ることができませんでした。お支払いいただいた110円は、返金の手続きを進めています。明細への反映まで日数がかかることがあります。";
 
 function savedOrder() {
   try { return localStorage.getItem(ORDER_KEY) || ""; } catch { return ""; }
@@ -282,7 +284,7 @@ $("btn-pay").onclick = async () => {
     keepOrder(j.orderId);
     location.href = j.payUrl;
   } catch (e) {
-    $("paid-error").textContent = "支払いの画面を開けませんでした：" + e.message;
+    $("paid-error").textContent = e.message;
     $("btn-pay").disabled = false;
   }
 };
@@ -294,7 +296,7 @@ $("btn-order-reset").onclick = () => {
 
 // 支払い待ちの注文があれば、払われたかを確かめて作り始める
 async function resumeOrder() {
-  const orderId = savedOrder();
+  const orderId = savedOrder() || state.openOrder;
   if (!orderId) return false;
   $("btn-order-reset").hidden = true;
   $("making-status").textContent = "お支払いを確かめています…";
@@ -310,6 +312,10 @@ async function resumeOrder() {
       if (j.status === "支払い済み") {
         await makeAd(orderId);
         return true;
+      }
+      if (j.status === "完成" || j.status === "返金済み" || j.status === "返金保留") {
+        keepOrder("");
+        return false;
       }
     } catch (e) { /* 通信の失敗は、もう一度確かめる */ }
     await new Promise((done) => setTimeout(done, 3000));
@@ -327,11 +333,71 @@ async function makeAd(orderId) {
     if (!r.ok) throw Object.assign(new Error(j.error), { code: j.code });
     const images = await Promise.all([1, 2, 3, 4].map((no) => drawPanel(orderId, no)));
     showDone(j.result, images);
+    const image = await buildRecordImage(j.result, images);
+    await callWorker("/paid-complete", { orderId, image });
     keepOrder("");
   } catch (e) {
-    $("making-status").textContent = "広告を作れませんでした（" + e.message + "）";
-    $("btn-order-reset").hidden = false;
+    if (!$("s-done").hidden) return; // 完成の画面が出たあとの記録の失敗は、お客さんに見せない
+    await failOrder(orderId);
   }
+}
+
+// 作れなかった注文を返金する
+async function failOrder(orderId) {
+  try {
+    const r = await callWorker("/paid-fail", { orderId });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error);
+    keepOrder("");
+    $("making-status").textContent = j.status === "返金済み" ? MSG_REFUNDED : MSG_REFUND_PENDING;
+  } catch (e) {
+    $("making-status").textContent = "広告を作ることができませんでした。時間をおいて、もう一度開いてください。";
+  }
+  $("btn-order-reset").hidden = false;
+}
+
+// 記録用に、4コマと3つの文を1枚の絵にまとめる
+async function buildRecordImage(result, images) {
+  const loaded = await Promise.all(images.map((src) => new Promise((done, fail) => {
+    const img = new Image();
+    img.onload = () => done(img);
+    img.onerror = fail;
+    img.src = src;
+  })));
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const width = 1000;
+  const panel = width / 2;
+  const fontSize = 20;
+  const lineHeight = 28;
+  ctx.font = `${fontSize}px sans-serif`;
+  const wrap = (text) => String(text).split("\n").flatMap((line) => {
+    const rows = [];
+    let row = "";
+    for (const ch of line) {
+      if (ctx.measureText(row + ch).width > width - 40) {
+        rows.push(row);
+        row = ch;
+      } else {
+        row += ch;
+      }
+    }
+    rows.push(row);
+    return rows;
+  });
+  const lines = [["TikTok", result.TikTok], ["Instagram", result.Instagram], ["X", result.X]]
+    .flatMap(([title, text]) => [`【${title}】`, ...wrap(text), ""]);
+  canvas.width = width;
+  canvas.height = panel * 2 + lines.length * lineHeight + 40;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  loaded.forEach((img, i) => ctx.drawImage(img, (i % 2) * panel, Math.floor(i / 2) * panel, panel, panel));
+  ctx.fillStyle = "#222";
+  ctx.font = `${fontSize}px sans-serif`;
+  lines.forEach((line, i) => ctx.fillText(line, 20, panel * 2 + 30 + i * lineHeight));
+  let data = canvas.toDataURL("image/jpeg", 0.6);
+  if (data.length > 850000) data = canvas.toDataURL("image/jpeg", 0.4);
+  return data;
 }
 
 // 絵を1枚描く。失敗したら自動で1回だけ描き直す
@@ -399,6 +465,9 @@ async function loadStatus() {
     state.lastUrl = j.lastUrl || "";
     state.prevCard = j.prevCard || {};
     state.lastInput = j.lastInput || {};
+    state.savedCharacter = j.savedCharacter || null;
+    state.prevOmakase = j.prevOmakase || "なし";
+    state.openOrder = j.openOrder || "";
   } catch (e) { /* 受け取れなくても、無料枠のボタンでWorkerが確かめるので進める */ }
 }
 
