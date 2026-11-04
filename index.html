@@ -18,8 +18,7 @@
 
 <!-- 今日の無料をもう使った人 -->
 <section id="s-used" class="screen" hidden>
-  <p>今日の無料分は、もう使いました。</p>
-  <button id="btn-use-paid" class="primary">有料枠を使う（1回100円）</button>
+  <p>今日の無料分は、もう使いました。</p>  <button id="btn-use-paid" class="primary">有料枠を使う（1回110円）</button>
   <button id="btn-quit">やめる（また明日）</button>
 </section>
 
@@ -96,7 +95,7 @@
   <h2>有料枠を使いますか？</h2>
   <button id="btn-free">無料枠（1日1回まで）</button>
   <p id="free-used-note" class="note" hidden>今日の無料分は使いました。</p>
-  <button id="btn-paid" class="primary">有料枠（1回100円）</button>
+  <button id="btn-paid" class="primary">有料枠（1回110円）</button>
 </section>
 
 <!-- 無料：プロンプト表示 -->
@@ -114,10 +113,38 @@
   <textarea id="prompt-out" readonly rows="16"></textarea>
 </section>
 
-<!-- 有料（準備中） -->
+<!-- 有料：払う前の注意書き -->
 <section id="s-paid" class="screen" hidden>
-  <h2>有料枠</h2>
-  <p class="note">準備中（作る順番の4番で作ります）</p>
+  <h2>有料枠（1回110円）</h2>
+  <ul class="caution">
+    <li>完成するまで画面を閉じないでください。閉じた場合は、次にログインしたときに続きから作ります。</li>
+    <li>作成した広告（選んだ内容と、完成した絵・文）は、サービス向上のための資料として保存します。運営者のみが確認し、外部に公開することはありません。</li>
+  </ul>
+  <p id="paid-error" class="error"></p>
+  <button id="btn-pay" class="primary">支払いへ進む（110円）</button>
+</section>
+
+<!-- 有料：作っている間 -->
+<section id="s-making" class="screen" hidden>
+  <h2>広告を作っています</h2>
+  <p id="making-status" class="note"></p>
+  <button id="btn-order-reset" hidden>最初に戻る</button>
+</section>
+
+<!-- 有料：完成 -->
+<section id="s-done" class="screen" hidden>
+  <h2>広告ができました</h2>
+  <p class="note">絵を押すと保存できます。</p>
+  <div id="done-panels" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+  <h3>TikTok</h3>
+  <textarea id="done-tiktok" readonly rows="8"></textarea>
+  <button class="copy-text" data-target="done-tiktok">コピー</button>
+  <h3>Instagram</h3>
+  <textarea id="done-instagram" readonly rows="8"></textarea>
+  <button class="copy-text" data-target="done-instagram">コピー</button>
+  <h3>X</h3>
+  <textarea id="done-x" readonly rows="5"></textarea>
+  <button class="copy-text" data-target="done-x">コピー</button>
 </section>
 
 </main>
