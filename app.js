@@ -495,9 +495,20 @@ async function requestPanel(orderId, no, photo) {
   return "data:image/png;base64," + j.data[0].b64_json;
 }
 
+// スマホでは共有の画面を開く（「画像を保存」で写真に入る）。パソコンは今までどおりダウンロード
+function savePanel(e, src, no) {
+  if (!matchMedia("(pointer: coarse)").matches) return;
+  const bytes = Uint8Array.from(atob(src.split(",")[1]), (c) => c.charCodeAt(0));
+  const file = new File([bytes], `koma${no}.png`, { type: "image/png" });
+  if (!navigator.canShare?.({ files: [file] })) return;
+  e.preventDefault();
+  navigator.share({ files: [file] }).catch(() => {});
+}
+
 function showDone(result, images) {
   $("done-panels").innerHTML = images.map((src, i) =>
     `<a href="${src}" download="koma${i + 1}.png"><img src="${src}" alt="${i + 1}コマ目" style="width:100%;display:block"></a>`).join("");
+  document.querySelectorAll("#done-panels a").forEach((link, i) => (link.onclick = (e) => savePanel(e, images[i], i + 1)));
   $("done-tiktok").value = result.TikTok;
   $("done-instagram").value = result.Instagram;
   $("done-x").value = result.X;
