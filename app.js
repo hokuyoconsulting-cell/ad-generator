@@ -259,6 +259,7 @@ $("btn-paid").onclick = () => show("s-paid");
 
 // ---- 有料：支払いへ進む → 戻ったら文と絵を作る ----
 const ORDER_KEY = "adGeneratorOrder";
+const PHOTO_KEY = "adGeneratorPhoto";
 const MSG_MAKING = "広告を作っています。このままお待ちください。";
 const MSG_SLOW = "広告を作っています。いつもより時間がかかっています。このままお待ちください。";
 const MSG_REFUNDED = "申し訳ありません。今回は広告を作ることができませんでした。お支払いいただいた110円は、全額返金しました。カード会社によっては、明細に反映されるまで日数がかかることがあります。時間をおいて、もう一度お試しください。";
@@ -270,18 +271,83 @@ function savedOrder() {
 function keepOrder(orderId) {
   try {
     if (orderId) localStorage.setItem(ORDER_KEY, orderId);
-    else localStorage.removeItem(ORDER_KEY);
+    else {
+      localStorage.removeItem(ORDER_KEY);
+      localStorage.removeItem(PHOTO_KEY);
+    }
   } catch { /* 残せなくても進める */ }
+}
+
+// 写真は、このブラウザにだけ置く。完成か返金のときに keepOrder("") で消す
+function keepPhoto(orderId, photo) {
+  try {
+    if (photo) localStorage.setItem(PHOTO_KEY, JSON.stringify({ orderId, photo }));
+    else localStorage.removeItem(PHOTO_KEY);
+  } catch { /* 置けないときは、戻ったあとに選び直してもらう */ }
+}
+function savedPhoto(orderId) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PHOTO_KEY) || "{}");
+    return saved.orderId === orderId ? saved.photo : "";
+  } catch { return ""; }
+}
+
+// 写真を、長い辺1024pxのJPEGに小さくする
+async function shrinkPhoto(file) {
+  const src = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((done, fail) => {
+      const image = new Image();
+      image.onload = () => done(image);
+      image.onerror = () => fail(new Error("この写真は読み込めませんでした。JPEGかPNGの写真を選んでください。"));
+      image.src = src;
+    });
+    const scale = Math.min(1, 1024 / Math.max(img.width, img.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.8);
+  } finally {
+    URL.revokeObjectURL(src);
+  }
+}
+
+// 写真が残っていないとき：選び直すか、写真なしで作るかを選んでもらう
+function askPhoto(orderId) {
+  show("s-photo");
+  $("btn-photo-use").onclick = async () => {
+    const file = $("re-photo").files[0];
+    if (!file) return ($("photo-error").textContent = "写真を選んでください。");
+    try {
+      const photo = await shrinkPhoto(file);
+      keepPhoto(orderId, photo);
+      show("s-making");
+      await makeAd(orderId, photo);
+    } catch (e) {
+      $("photo-error").textContent = e.message;
+    }
+  };
+  $("btn-no-photo").onclick = async () => {
+    show("s-making");
+    await makeAd(orderId, "", true);
+  };
 }
 
 $("btn-pay").onclick = async () => {
   $("btn-pay").disabled = true;
   $("paid-error").textContent = "";
   try {
+    const file = $("in-photo").files[0];
+    const photo = file ? await shrinkPhoto(file) : "";
     const r = await callWorker("/order", promptInput());
     const j = await r.json();
     if (!r.ok) throw new Error(j.error);
     keepOrder(j.orderId);
+    keepPhoto(j.orderId, photo);
     location.href = j.payUrl;
   } catch (e) {
     $("paid-error").textContent = e.message;
@@ -310,7 +376,12 @@ async function resumeOrder() {
         return false;
       }
       if (j.status === "支払い済み") {
-        await makeAd(orderId);
+        const photo = savedPhoto(orderId);
+        if (j.photo && !photo) {
+          askPhoto(orderId);
+          return true;
+        }
+        await makeAd(orderId, photo);
         return true;
       }
       if (j.status === "完成" || j.status === "返金済み" || j.status === "返金保留") {
@@ -325,13 +396,13 @@ async function resumeOrder() {
   return true;
 }
 
-async function makeAd(orderId) {
+async function makeAd(orderId, photo = "", noPhoto = false) {
   $("making-status").textContent = MSG_MAKING;
   try {
-    const r = await callWorker("/paid-text", { orderId });
+    const r = await callWorker("/paid-text", { orderId, noPhoto });
     const j = await r.json();
     if (!r.ok) throw Object.assign(new Error(j.error), { code: j.code });
-    const images = await Promise.all([1, 2, 3, 4].map((no) => drawPanel(orderId, no)));
+    const images = await Promise.all([1, 2, 3, 4].map((no) => drawPanel(orderId, no, photo)));
     showDone(j.result, images);
     const image = await buildRecordImage(j.result, images);
     await callWorker("/paid-complete", { orderId, image });
@@ -401,17 +472,17 @@ async function buildRecordImage(result, images) {
 }
 
 // 絵を1枚描く。失敗したら自動で1回だけ描き直す
-async function drawPanel(orderId, no) {
+async function drawPanel(orderId, no, photo) {
   try {
-    return await requestPanel(orderId, no);
+    return await requestPanel(orderId, no, photo);
   } catch (e) {
     if (e.code === "no_balance") throw e;
     $("making-status").textContent = MSG_SLOW;
-    return await requestPanel(orderId, no);
+    return await requestPanel(orderId, no, photo);
   }
 }
-async function requestPanel(orderId, no) {
-  const r = await callWorker("/paid-image", { orderId, no });
+async function requestPanel(orderId, no, photo) {
+  const r = await callWorker("/paid-image", { orderId, no, ...(photo ? { photo } : {}) });
   const j = await r.json();
   if (!r.ok) throw Object.assign(new Error(j.error), { code: j.code });
   return "data:image/png;base64," + j.data[0].b64_json;
