@@ -71,7 +71,7 @@
 <label>商品の写真（任意。保存しません）
 <input id="in-photo" type="file" accept="image/*">
 </label>
-<p class="note">写真は、商品の見た目を伝えるための参考です。写真そのものは貼らず、写真を見て描いた絵がマンガに入ります。無料のときは、プロンプトと一緒に写真もご自分のAIに貼ってください。</p>
+<p class="note">写真は、商品の色と形を伝えるための参考です。写真そのものは貼らず、写真を見て描いた絵がマンガに入ります。ロゴや文字、キャラクターは描かないように指示します。無料のときは、プロンプトと一緒に写真もご自分のAIに貼ってください。</p>
   <p id="input-error" class="error"></p>
   <button id="btn-input-next" class="primary">次へ（趣向カード）</button>
 </section>
@@ -122,6 +122,16 @@
   </ul>
   <p id="paid-error" class="error"></p>
   <button id="btn-pay" class="primary">支払いへ進む（110円）</button>
+</section>
+
+<!-- 有料：写真が残っていないとき -->
+<section id="s-photo" class="screen" hidden>
+  <h2>商品の写真</h2>
+  <p class="note">お選びいただいた写真が、この画面には残っていません。もう一度選ぶか、写真なしで作るかを選んでください。</p>
+  <input id="re-photo" type="file" accept="image/*">
+  <p id="photo-error" class="error"></p>
+  <button id="btn-photo-use" class="primary">この写真で作る</button>
+  <button id="btn-no-photo">写真なしで作る</button>
 </section>
 
 <!-- 有料：作っている間 -->
