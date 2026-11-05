@@ -428,6 +428,7 @@ async function makeAd(orderId, photo = "", noPhoto = false) {
 
 // 作れなかった注文を返金する
 async function failOrder(orderId) {
+  document.querySelector("#s-making h2").textContent = "広告を作れませんでした";
   try {
     const r = await callWorker("/paid-fail", { orderId });
     const j = await r.json();
