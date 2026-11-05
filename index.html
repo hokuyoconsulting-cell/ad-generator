@@ -14,6 +14,8 @@
 <section id="s-login" class="screen">
   <p>Googleのアカウントでログインします。初めての方は、ログインするとアカウントができます。</p>
   <button id="btn-login" class="primary">Googleでログイン</button>
+  <p class="note">LINE・Instagram・TikTok・Xなどのアプリの中で開くと、ログインできないことがあります。そのときは、このページのアドレスをコピーして、SafariかChromeで開いてください。</p>
+  <button id="btn-copy-url">ページのアドレスをコピー</button>
 </section>
 
 <!-- 今日の無料をもう使った人 -->
@@ -145,8 +147,9 @@
 <!-- 有料：完成 -->
 <section id="s-done" class="screen" hidden>
   <h2>広告ができました</h2>
-  <p class="note">絵を押すと保存できます。</p>
+  <p class="note">絵を押すと1枚ずつ、下のボタンで4枚まとめて保存できます。</p>
   <div id="done-panels" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+  <button id="btn-save-all" class="primary">4枚まとめて保存</button>
   <h3>TikTok</h3>
   <textarea id="done-tiktok" readonly rows="8"></textarea>
   <button class="copy-text" data-target="done-tiktok">コピー</button>
