@@ -142,6 +142,13 @@ $("category").addEventListener("change", () => ($("fu-category").hidden = true))
     $("apply-confirm").checked = false;
   };
 
+// ---- 写真を消す ----
+$("in-photo").addEventListener("change", () => ($("btn-photo-clear").hidden = !$("in-photo").files.length));
+$("btn-photo-clear").onclick = () => {
+  $("in-photo").value = "";
+  $("btn-photo-clear").hidden = true;
+};
+
 // ---- 記入 ----
 $("btn-input-next").onclick = () => {
   const need = [["in-strength", "伝えたい強み"], ["in-name", "商品・サービスの名前"], ["in-price", "価格"],
