@@ -49,6 +49,12 @@ if (firebaseConfig.apiKey === "ここに貼る") {
 $("btn-login").onclick = () =>
   signInWithPopup(auth, new GoogleAuthProvider()).catch((e) => alertBox("s-login", "ログインできませんでした：" + e.code));
 
+$("btn-copy-url").onclick = () => {
+  navigator.clipboard.writeText(location.href)
+    .then(() => ($("btn-copy-url").textContent = "コピーしました"))
+    .catch(() => ($("btn-copy-url").textContent = location.href));
+};
+
 function alertBox(screenId, msg) {
   $(screenId).insertAdjacentHTML("beforeend", `<p class="error">${msg}</p>`);
 }
@@ -498,17 +504,32 @@ async function requestPanel(orderId, no, photo) {
 // スマホでは共有の画面を開く（「画像を保存」で写真に入る）。パソコンは今までどおりダウンロード
 function savePanel(e, src, no) {
   if (!matchMedia("(pointer: coarse)").matches) return;
-  const bytes = Uint8Array.from(atob(src.split(",")[1]), (c) => c.charCodeAt(0));
-  const file = new File([bytes], `koma${no}.png`, { type: "image/png" });
+  const file = panelFile(src, no);
   if (!navigator.canShare?.({ files: [file] })) return;
   e.preventDefault();
   navigator.share({ files: [file] }).catch(() => {});
+}
+
+function panelFile(src, no) {
+  const bytes = Uint8Array.from(atob(src.split(",")[1]), (c) => c.charCodeAt(0));
+  return new File([bytes], `koma${no}.png`, { type: "image/png" });
+}
+
+// 4枚まとめて保存。スマホは共有の画面、パソコンはダウンロード
+function saveAll(images) {
+  const files = images.map((src, i) => panelFile(src, i + 1));
+  if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files })) {
+    navigator.share({ files }).catch(() => {});
+    return;
+  }
+  document.querySelectorAll("#done-panels a").forEach((link) => link.click());
 }
 
 function showDone(result, images) {
   $("done-panels").innerHTML = images.map((src, i) =>
     `<a href="${src}" download="koma${i + 1}.png"><img src="${src}" alt="${i + 1}コマ目" style="width:100%;display:block"></a>`).join("");
   document.querySelectorAll("#done-panels a").forEach((link, i) => (link.onclick = (e) => savePanel(e, images[i], i + 1)));
+  $("btn-save-all").onclick = () => saveAll(images);
   $("done-tiktok").value = result.TikTok;
   $("done-instagram").value = result.Instagram;
   $("done-x").value = result.X;
