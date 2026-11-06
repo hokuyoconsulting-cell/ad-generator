@@ -1,7 +1,7 @@
 // 広告生成機　画面の骨組み（作る順番の1番）
 // まだ作っていない所には「準備中」と書いてある。
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { firebaseConfig } from "./firebase-config.js";
 import { CATEGORIES, ITEMS, HUMAN, isAsked } from "./shukou.js";
 
@@ -22,7 +22,8 @@ const state = {
 };
 
 function show(id) {
-  document.querySelectorAll(".screen").forEach((s) => (s.hidden = s.id !== id));
+document.querySelectorAll(".screen").forEach((s) => (s.hidden = s.id !== id));
+$("btn-switch").hidden = !state.user || id === "s-making";
   window.scrollTo(0, 0);
 }
 
@@ -37,7 +38,7 @@ if (firebaseConfig.apiKey === "ここに貼る") {
   onAuthStateChanged(auth, async (user) => {
     state.user = user;
     if (!user) return show("s-login");
-    $("who").textContent = user.displayName || user.email || "";
+$("who").textContent = user.email || user.displayName || "";
     loadMeanings();
     await loadStatus();
     if (await resumeOrder()) return;
@@ -46,8 +47,12 @@ if (firebaseConfig.apiKey === "ここに貼る") {
     fillLast();
   });
 }
-$("btn-login").onclick = () =>
-  signInWithPopup(auth, new GoogleAuthProvider()).catch((e) => alertBox("s-login", "ログインできませんでした：" + e.code));
+$("btn-login").onclick = () => {
+const provider = new GoogleAuthProvider();
+provider.setCustomParameters({ prompt: "select_account" }); // 毎回、アカウントを選ぶ画面を出す
+signInWithPopup(auth, provider).catch((e) => alertBox("s-login", "ログインできませんでした：" + e.code));
+};
+$("btn-switch").onclick = () => signOut(auth).then(() => location.reload());
 
 $("btn-copy-url").onclick = () => {
   navigator.clipboard.writeText(location.href)
@@ -168,7 +173,7 @@ if (state.category === "当てはまるものがない") return show("s-refuse")
   if (!$("apply-confirm").checked) return ($("input-error").textContent = "申込方法の情報をプロフィールに載せてから使ってください。");
   $("input-error").textContent = "";
   // 前回の選択を最初から入れておく（印も付ける）
-  state.card = { ...state.prevCard };
+if (!Object.keys(state.card).length) state.card = { ...state.prevCard };
   if (!state.card[19]) state.card[19] = "特になし";
   renderCard();
   show("s-card");
@@ -368,6 +373,9 @@ $("btn-pay").onclick = async () => {
   }
 };
 
+$("btn-paid-back").onclick = () => show("s-product");
+$("btn-again").onclick = () => location.reload();
+
 $("btn-order-reset").onclick = () => {
   keepOrder("");
   location.reload();
@@ -418,8 +426,9 @@ async function makeAd(orderId, photo = "", noPhoto = false) {
     const images = await Promise.all([1, 2, 3, 4].map((no) => drawPanel(orderId, no, photo)));
     showDone(j.result, images);
     const image = await buildRecordImage(j.result, images);
-    await callWorker("/paid-complete", { orderId, image });
-    keepOrder("");
+await callWorker("/paid-complete", { orderId, image });
+keepOrder("");
+$("btn-again").hidden = false;
   } catch (e) {
     if (!$("s-done").hidden) return; // 完成の画面が出たあとの記録の失敗は、お客さんに見せない
     await failOrder(orderId);
