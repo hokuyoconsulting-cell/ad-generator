@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header><h1>広告生成機</h1><span id="who"></span></header>
+<header><h1>広告生成機</h1><span id="who"></span><button type="button" id="btn-switch" hidden>アカウントを切り替える</button></header>
 <main>
 
 <!-- ログイン -->
@@ -70,7 +70,7 @@
   <h3>今回の広告</h3>
 <label>今回のネタ（任意）<textarea id="in-neta" placeholder="例：期間限定20％OFF（11/20〜11/30）／新メニューを追加"></textarea></label>
   <label>今回の広告で伝えたい強み（1つ・必須）<textarea id="in-strength"></textarea></label>
-<label>商品の写真（任意。保存しません）
+<label>商品の写真（任意）
 <input id="in-photo" type="file" accept="image/*">
 </label>
 <button type="button" id="btn-photo-clear" hidden>写真を消す</button>
@@ -120,11 +120,14 @@
 <section id="s-paid" class="screen" hidden>
   <h2>有料枠（1回110円）</h2>
   <ul class="caution">
-    <li>完成するまで画面を閉じないでください。閉じた場合は、次にログインしたときに続きから作ります。</li>
+<li>完成するまで画面を閉じないでください。閉じた場合は、次にログインしたときに続きから作ります。</li>
+<li>完成した絵と文は、完成の画面でだけ保存できます。あとから戻ってもう一度保存することはできません。</li>
+<li>写真は、絵を描くためにOpenAIへ送られます。北陽テックのサーバーには保存しません。OpenAIでは、不正利用の確認のため最長30日保管されることがあります。AIの学習には使われません。</li>
     <li>作成した広告（選んだ内容と、完成した絵・文）は、サービス向上のための資料として保存します。運営者のみが確認し、外部に公開することはありません。</li>
   </ul>
   <p id="paid-error" class="error"></p>
-  <button id="btn-pay" class="primary">支払いへ進む（110円）</button>
+<button id="btn-pay" class="primary">支払いへ進む（110円）</button>
+<button type="button" id="btn-paid-back">商品の入力に戻る</button>
 </section>
 
 <!-- 有料：写真が残っていないとき -->
@@ -147,7 +150,8 @@
 <!-- 有料：完成 -->
 <section id="s-done" class="screen" hidden>
   <h2>広告ができました</h2>
-  <p class="note">絵を押すと1枚ずつ、下のボタンで4枚まとめて保存できます。</p>
+<p class="note">絵を押すと1枚ずつ、下のボタンで4枚まとめて保存できます。</p>
+<p class="note">この画面を閉じる、または「もう一度作る」を押すと、絵と文は消えます。必ず先に保存とコピーをしてください。</p>
   <div id="done-panels" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
   <button id="btn-save-all" class="primary">4枚まとめて保存</button>
   <h3>TikTok</h3>
@@ -158,7 +162,8 @@
   <button class="copy-text" data-target="done-instagram">コピー</button>
   <h3>X</h3>
   <textarea id="done-x" readonly rows="5"></textarea>
-  <button class="copy-text" data-target="done-x">コピー</button>
+<button class="copy-text" data-target="done-x">コピー</button>
+<button type="button" id="btn-again" hidden>もう一度作る（1回110円）</button>
 </section>
 
 </main>
