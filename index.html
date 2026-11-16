@@ -20,7 +20,7 @@
 
 <!-- 今日の無料をもう使った人 -->
 <section id="s-used" class="screen" hidden>
-  <p>今日の無料分は、もう使いました。</p>  <button id="btn-use-paid" class="primary">有料枠を使う（1回110円）</button>
+  <p>今日の無料分は、もう使いました。</p>  <button id="btn-use-paid" class="primary">有料枠を使う（1回110円・税込）</button>
   <button id="btn-quit">やめる（また明日）</button>
 </section>
 
@@ -100,7 +100,7 @@
   <h2>有料枠を使いますか？</h2>
   <button id="btn-free">無料枠（1日1回まで）</button>
   <p id="free-used-note" class="note" hidden>今日の無料分は使いました。</p>
-  <button id="btn-paid" class="primary">有料枠（1回110円）</button>
+  <button id="btn-paid" class="primary">有料枠（1回110円・税込）</button>
 </section>
 
 <!-- 無料：プロンプト表示 -->
@@ -120,7 +120,7 @@
 
 <!-- 有料：払う前の注意書き -->
 <section id="s-paid" class="screen" hidden>
-  <h2>有料枠（1回110円）</h2>
+  <h2>有料枠（1回110円・税込）</h2>
   <ul class="caution">
 <li>広告を作れなかったときは、110円を全額返金します（明細への反映には、日数がかかることがあります）。</li>
 <li>完成するまで画面を閉じないでください。閉じた場合は、次にログインしたときに続きから作ります。</li>
@@ -166,7 +166,7 @@
   <h3>X</h3>
   <textarea id="done-x" readonly rows="5"></textarea>
 <button class="copy-text" data-target="done-x">コピー</button>
-<button type="button" id="btn-again" hidden>もう一度作る（1回110円）</button>
+<button type="button" id="btn-again" hidden>もう一度作る（1回110円・税込）</button>
 </section>
 
 </main>
