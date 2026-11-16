@@ -174,6 +174,14 @@ if (state.category === "当てはまるものがない") return show("s-refuse")
   $("input-error").textContent = "";
   // 前回の選択を最初から入れておく（印も付ける）
 if (!Object.keys(state.card).length) state.card = { ...state.prevCard };
+// 前回の選択のうち、今は無い選択肢は外す。いくつでも選べる項目は、前回の1つを並びにする
+ITEMS.forEach((it) => {
+  const v = state.card[it.no];
+  if (!it.options || v === undefined) return;
+  const list = (Array.isArray(v) ? v : [v]).filter((o) => it.options.includes(o));
+  if (!list.length) delete state.card[it.no];
+  else state.card[it.no] = it.type === "multi" ? list : list[0];
+});
   if (!state.card[19]) state.card[19] = "特になし";
   renderCard();
   show("s-card");
