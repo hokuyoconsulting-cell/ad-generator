@@ -21,6 +21,12 @@ pre{white-space:pre-wrap;word-break:break-all;background:#f6f6f6;padding:8px;fon
 <body>
 <h1>広告生成機 管理者</h1>
 <div id="s-login"><button id="btn-login">Googleでログイン</button></div>
+<div id="s-pass" hidden>
+  <p>合言葉を入れてください。</p>
+  <input type="password" id="pass" autocomplete="off" style="padding:8px;font-size:15px">
+  <button id="btn-pass">入る</button>
+  <button id="btn-other">別のアカウントで入る</button>
+</div>
 <div id="s-main" hidden>
   <p><span id="who" class="muted"></span> <button id="btn-reload">読み直す</button>
   <a class="btn" href="https://claude.ai/artifact/1SRmieUfYXkLvtGWXBKo3w" target="_blank" rel="noopener">お客さん対応マニュアル</a></p>
@@ -58,13 +64,18 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (m) => ({ "&": "&amp;", "<
 const auth = getAuth(initializeApp(firebaseConfig));
 let user = null;
 let data = null;
+let pass = "";
 
 onAuthStateChanged(auth, (u) => {
   user = u;
   $("s-login").hidden = !!u;
-  $("s-main").hidden = !u;
-  if (u) { $("who").textContent = u.email; load(); }
+  $("s-pass").hidden = !u;
+  $("s-main").hidden = true;
+  if (u) $("who").textContent = u.email;
 });
+$("btn-pass").onclick = () => { pass = $("pass").value; $("pass").value = ""; load(); };
+$("pass").onkeydown = (e) => { if (e.key === "Enter") $("btn-pass").click(); };
+$("btn-other").onclick = () => signOut(auth).then(() => location.reload());
 $("btn-login").onclick = () => {
   const p = new GoogleAuthProvider();
   p.setCustomParameters({ prompt: "select_account" });
@@ -77,7 +88,7 @@ async function call(path, body) {
   const r = await fetch(WORKER_URL + path, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-    body: JSON.stringify(body || {}),
+    body: JSON.stringify({ ...(body || {}), pass }),
   });
   const j = await r.json();
   if (!r.ok) throw new Error(j.error || r.status);
@@ -89,13 +100,13 @@ async function load() {
   try {
     data = await call("/admin-data");
     $("msg").textContent = "";
+    $("s-pass").hidden = true;
+    $("s-main").hidden = false;
     render();
   } catch (e) {
     $("msg").textContent = "読めませんでした：" + e.message;
     $("s-main").hidden = true;
-    $("s-login").hidden = false;
-    $("s-login").insertAdjacentHTML("beforeend", ' <button id="btn-out">ログアウト</button>');
-    $("btn-out").onclick = () => signOut(auth).then(() => location.reload());
+    $("s-pass").hidden = false;
   }
 }
 
