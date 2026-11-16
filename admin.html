@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>広告生成機 管理者</title>
+<style>
+body{font-family:sans-serif;margin:0;padding:16px;max-width:960px;margin:auto;color:#222;line-height:1.6}
+h1{font-size:20px} h2{font-size:17px;margin-top:28px;border-bottom:2px solid #ddd;padding-bottom:4px}
+table{border-collapse:collapse;width:100%;font-size:13px} th,td{border:1px solid #ddd;padding:4px 6px;text-align:left;vertical-align:top}
+tr.row{cursor:pointer} tr.row:hover{background:#f3f7ff}
+input[type=search]{width:100%;padding:8px;font-size:15px;box-sizing:border-box;margin:6px 0}
+button,a.btn{padding:8px 14px;font-size:15px;cursor:pointer}
+pre{white-space:pre-wrap;word-break:break-all;background:#f6f6f6;padding:8px;font-size:12px;max-height:360px;overflow:auto}
+.err{color:#b00020} .muted{color:#777;font-size:12px} .bad{color:#b00020;font-weight:bold}
+#detail{border:2px solid #4a7;padding:10px;margin-top:12px} #detail img{max-width:100%}
+.bar{display:inline-block;height:10px;background:#7aa7ff;vertical-align:middle;margin-right:6px}
+</style>
+</head>
+<body>
+<h1>広告生成機 管理者</h1>
+<div id="s-login"><button id="btn-login">Googleでログイン</button></div>
+<div id="s-main" hidden>
+  <p><span id="who" class="muted"></span> <button id="btn-reload">読み直す</button>
+  <a class="btn" href="https://claude.ai/artifact/1SRmieUfYXkLvtGWXBKo3w" target="_blank" rel="noopener">お客さん対応マニュアル</a></p>
+  <p id="summary"></p>
+  <div id="detail" hidden></div>
+
+  <h2>① 注文の一覧（新しい順・最大200件）</h2>
+  <input type="search" id="q" placeholder="メール・状態・番号で探す">
+  <div id="orders"></div>
+
+  <h2>② 日ごとの使われた回数（直近30日）</h2>
+  <div id="days"></div>
+  <p class="muted">無料は「押された回数」です。同じ人が1日に2回以上押すと、使えなくても数えます。</p>
+
+  <h2>③ 選ばれたもの（直近の記録 <span id="logcount"></span> 件）</h2>
+  <div id="cats"></div>
+  <div id="cards"></div>
+  <h3>強み（種類ごと・最大30件）</h3>
+  <div id="strengths"></div>
+
+  <h2>④ 無料の記録（新しい順・30件）</h2>
+  <div id="freelogs"></div>
+</div>
+<p id="msg" class="err"></p>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { firebaseConfig } from "./firebase-config.js";
+import { ITEMS } from "./shukou.js";
+
+const $ = (id) => document.getElementById(id);
+const WORKER_URL = "https://ad-generator-worker.hokuyo-consulting.workers.dev";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]));
+const auth = getAuth(initializeApp(firebaseConfig));
+let user = null;
+let data = null;
+
+onAuthStateChanged(auth, (u) => {
+  user = u;
+  $("s-login").hidden = !!u;
+  $("s-main").hidden = !u;
+  if (u) { $("who").textContent = u.email; load(); }
+});
+$("btn-login").onclick = () => {
+  const p = new GoogleAuthProvider();
+  p.setCustomParameters({ prompt: "select_account" });
+  signInWithPopup(auth, p).catch((e) => ($("msg").textContent = "ログインできませんでした：" + e.code));
+};
+$("btn-reload").onclick = () => load();
+
+async function call(path, body) {
+  const token = await user.getIdToken();
+  const r = await fetch(WORKER_URL + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: JSON.stringify(body || {}),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.status);
+  return j;
+}
+
+async function load() {
+  $("msg").textContent = "読んでいます…";
+  try {
+    data = await call("/admin-data");
+    $("msg").textContent = "";
+    render();
+  } catch (e) {
+    $("msg").textContent = "読めませんでした：" + e.message;
+    $("s-main").hidden = true;
+    $("s-login").hidden = false;
+    $("s-login").insertAdjacentHTML("beforeend", ' <button id="btn-out">ログアウト</button>');
+    $("btn-out").onclick = () => signOut(auth).then(() => location.reload());
+  }
+}
+
+function render() {
+  $("summary").innerHTML = `有料の残り回数：<b>${esc(data.remaining)}</b>` + (data.stopped ? ' <span class="bad">（受付を止めています）</span>' : "");
+  renderOrders();
+  $("days").innerHTML = table(["日付", "無料（押された回数）", "有料（注文）", "URLを読んだ回数"],
+    data.days.map((d) => [d.date, d.free, d.paid, d.urlReads]));
+  $("logcount").textContent = data.logCount;
+  $("cats").innerHTML = "<h3>商品の種類</h3>" + bars(data.categories);
+  const names = Object.fromEntries(ITEMS.map((it) => [String(it.no), it.name]));
+  $("cards").innerHTML = "<h3>趣向カード</h3>" + Object.keys(data.cards).sort((a, b) => a - b).map((no) =>
+    `<p><b>${esc(no)}. ${esc(names[no] || "")}</b></p>` + bars(data.cards[no])).join("");
+  $("strengths").innerHTML = Object.entries(data.strengths).map(([cat, list]) =>
+    `<p><b>${esc(cat)}</b></p><ul>${list.map((x) => `<li>${esc(x.text)} <span class="muted">${esc(x.date)}・${esc(x.mode)}</span></li>`).join("")}</ul>`).join("");
+  $("freelogs").innerHTML = table(["日付", "種類", "名前", "ユーザー"],
+    data.freeLogs.map((l) => [l.date, l.category, l.name, (l.uid || "").slice(0, 8)]), data.freeLogs.map((l) => l.id));
+  document.querySelectorAll("tr.row").forEach((tr) => (tr.onclick = () => openDetail(tr.dataset.id)));
+}
+
+function renderOrders() {
+  const q = $("q").value.trim().toLowerCase();
+  const rows = data.orders.filter((o) => !q || [o.email, o.status, o.id, o.uid].join(" ").toLowerCase().includes(q));
+  $("orders").innerHTML = table(["日時", "メール", "状態", "失敗の理由・返金", "番号"],
+    rows.map((o) => [(o.createdAt || "").replace("T", " ").slice(0, 16), o.email || ("（メールなし）" + (o.uid || "").slice(0, 8)), o.status,
+      [o.aiError, o.refundStatus && "返金:" + o.refundStatus].filter(Boolean).join(" "), (o.id || "").slice(0, 8)]), rows.map((o) => o.id));
+  document.querySelectorAll("#orders tr.row").forEach((tr) => (tr.onclick = () => openDetail(tr.dataset.id)));
+}
+$("q").oninput = renderOrders;
+
+function table(head, rows, ids) {
+  return "<table><tr>" + head.map((h) => `<th>${esc(h)}</th>`).join("") + "</tr>" +
+    rows.map((r, i) => `<tr class="${ids ? "row" : ""}" ${ids ? `data-id="${esc(ids[i])}"` : ""}>` + r.map((c) => `<td>${esc(c)}</td>`).join("") + "</tr>").join("") + "</table>";
+}
+function bars(obj) {
+  const max = Math.max(1, ...Object.values(obj));
+  return Object.entries(obj).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
+    `<div><span class="bar" style="width:${Math.round((v / max) * 160)}px"></span>${esc(k)}：${v}</div>`).join("");
+}
+
+async function openDetail(id) {
+  const box = $("detail");
+  box.hidden = false;
+  box.textContent = "読んでいます…";
+  box.scrollIntoView();
+  try {
+    const { order, log } = await call("/admin-detail", { id });
+    const src = { ...(order || {}), ...(log || {}) };
+    const pretty = (t) => { try { return JSON.stringify(JSON.parse(t), null, 1); } catch { return t || ""; } };
+    const keys = ["status", "email", "uid", "date", "createdAt", "paidAt", "completedAt", "refundStatus", "aiError", "promptVersion", "mode", "imageCalls"];
+    box.innerHTML = `<p><b>${esc(id)}</b> <button id="btn-close">閉じる</button></p>` +
+      table(["項目", "値"], keys.filter((k) => src[k] !== undefined).map((k) => [k, src[k]])) +
+      (src.image ? `<h3>完成の1枚</h3><img src="${esc(src.image)}" alt="完成">` : "") +
+      (src.input ? `<h3>設定</h3><pre>${esc(pretty(src.input))}</pre>` : "") +
+      (src.card ? `<h3>趣向カード</h3><pre>${esc(pretty(src.card))}</pre>` : "") +
+      (src.result ? `<h3>できた文と絵の指示</h3><pre>${esc(pretty(src.result))}</pre>` : "") +
+      (src.prompt ? `<h3>プロンプト</h3><pre>${esc(src.prompt)}</pre>` : "") +
+      (src.aiRaw ? `<h3>AIの答え（失敗したとき）</h3><pre>${esc(src.aiRaw)}</pre>` : "");
+    $("btn-close").onclick = () => (box.hidden = true);
+  } catch (e) {
+    box.textContent = "読めませんでした：" + e.message;
+  }
+}
+</script>
+</body>
+</html>
