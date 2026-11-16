@@ -50,7 +50,7 @@ $("who").textContent = user.email || user.displayName || "";
 $("btn-login").onclick = () => {
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" }); // 毎回、アカウントを選ぶ画面を出す
-signInWithPopup(auth, provider).catch((e) => alertBox("s-login", "ログインできませんでした：" + e.code));
+signInWithPopup(auth, provider).catch((e) => alertBox("s-login", "ログインできませんでした。もう一度お試しください。"));
 };
 $("btn-switch").onclick = () => signOut(auth).then(() => location.reload());
 
@@ -75,6 +75,12 @@ $("category").onchange = (e) => {
   state.category = e.target.value;
   markChecked($("category"));
   if (state.category === "当てはまるものがない") show("s-refuse");
+};
+$("btn-refuse-back").onclick = () => {
+  state.category = "";
+  document.querySelectorAll('input[name="category"]').forEach((x) => (x.checked = false));
+  markChecked($("category"));
+  show("s-product");
 };
 
 $("btn-read-url").onclick = async () => {
