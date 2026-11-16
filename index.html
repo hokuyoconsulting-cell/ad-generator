@@ -70,6 +70,7 @@
   <h3>今回の広告</h3>
 <label>今回のネタ（任意）<textarea id="in-neta" placeholder="例：期間限定20％OFF（11/20〜11/30）／新メニューを追加"></textarea></label>
   <label>今回の広告で伝えたい強み（1つ・必須）<textarea id="in-strength"></textarea></label>
+  <p class="note">強みが分からないときは、ご自分のAIに、商品のページを見せて「このページを読んで、強みは何だと思う？」と聞いてみてください。</p>
 <label>商品の写真（任意）
 <input id="in-photo" type="file" accept="image/*">
 </label>
@@ -80,7 +81,8 @@
 </section>
 
 <section id="s-refuse" class="screen" hidden>
-  <p>この商品は、この道具で扱える種類に当たりません</p>
+  <p>この商品は、この道具で扱える種類に当たりません。</p>
+  <button type="button" id="btn-refuse-back" class="primary">商品の入力に戻る</button>
 </section>
 
 
@@ -120,6 +122,7 @@
 <section id="s-paid" class="screen" hidden>
   <h2>有料枠（1回110円）</h2>
   <ul class="caution">
+<li>広告を作れなかったときは、110円を全額返金します（明細への反映には、日数がかかることがあります）。</li>
 <li>完成するまで画面を閉じないでください。閉じた場合は、次にログインしたときに続きから作ります。</li>
 <li>完成した絵と文は、完成の画面でだけ保存できます。あとから戻ってもう一度保存することはできません。</li>
 <li>写真は、絵を描くためにOpenAIへ送られます。北陽テックのサーバーには保存しません。OpenAIでは、不正利用の確認のため最長30日保管されることがあります。AIの学習には使われません。</li>
